@@ -12,18 +12,22 @@ from app.infrastructure.platform import write_audit, write_outbox
 class CatalogRepository:
     def list_products(
         self, connection: Connection, tenant_id: UUID, *, search: str | None, status: str | None,
-        limit: int, after: UUID | None
+        limit: int, after: UUID | None, sort: str = "id"
     ) -> list[dict[str, Any]]:
-        rows = connection.execute(
-            text("""
+        order = {"id": "id ASC", "sku": "sku ASC,id ASC", "name": "name ASC,id ASC", "updated_at": "updated_at DESC,id ASC"}.get(sort)
+        if order is None:
+            raise ValueError("unsupported sort")
+        query = """
                 SELECT id,sku,name,product_type,tracking_type,status,category_id,base_unit_id,updated_at
                 FROM products
                 WHERE tenant_id=:tenant
                   AND (:status IS NULL OR status=:status)
                   AND (:search IS NULL OR sku ILIKE :pattern OR name ILIKE :pattern)
                   AND (:after IS NULL OR id > :after)
-                ORDER BY id ASC LIMIT :limit
-            """),
+                ORDER BY {order} LIMIT :limit
+            """
+        rows = connection.execute(
+            text(query.format(order=order)),
             {"tenant": tenant_id, "status": status, "search": search,
              "pattern": f"%{search}%" if search else None, "after": after, "limit": limit},
         ).mappings()
