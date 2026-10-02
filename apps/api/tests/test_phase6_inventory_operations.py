@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy import text
+from test_phase4_inventory import balance, ctx, seed
 
 from app.application.inventory import StockLine, post_inventory, reconcile_inventory
 from app.application.inventory_operations import (
@@ -13,7 +14,6 @@ from app.application.inventory_operations import (
     reorder_status,
     upsert_reorder_policy,
 )
-from test_phase4_inventory import balance, ctx, seed
 
 
 def phase6_ctx(tenant):
