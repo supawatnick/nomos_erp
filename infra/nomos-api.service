@@ -1,0 +1,15 @@
+[Unit]
+Description=NOMOS ERP FastAPI
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/nomos_erp/apps/api
+EnvironmentFile=/root/nomos_erp/apps/api/.env
+ExecStart=/root/nomos_erp/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
