@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 
 import structlog
 from fastapi import FastAPI, Header, HTTPException, Request, Response, status
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 from app.application.auth import create_session, resolve_session, revoke_session
 from app.core.config import get_settings
@@ -18,7 +18,7 @@ app = FastAPI(title=settings.app_name, version="0.2.0")
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     tenant_id: UUID
 
