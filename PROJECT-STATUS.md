@@ -3,11 +3,11 @@
 > Operational handoff/source of truth. Read after AGENTS.md before every work session.
 
 ## Current stage
-Phase 10 Approval & Commercial Controls Closure
+Phase 11 Operational Reporting Closure
 
-Overall status: **PHASE 10 PASS — READY FOR PHASE 11**
+Overall status: **PHASE 11 PASS — READY FOR PHASE 12**
 
-Primary objective: begin Phase 11 Operational Reporting from the clean Phase 10 baseline on host 73 only.
+Primary objective: begin Phase 12 Finance & Accounting from the clean Phase 11 baseline on host 73 only.
 
 ## Completed
 
@@ -223,18 +223,30 @@ Primary objective: begin Phase 11 Operational Reporting from the clean Phase 10 
 - [x] Phase 10 implementation CI 37005603584 PASS.
 - [x] Detailed review: docs/PHASE-10-REVIEW.md.
 
+## Phase 11 — Operational Reporting
+- [x] Allowlisted tenant-scoped Inventory, Procurement, Sales/CRM and management reports.
+- [x] No arbitrary SQL or client-provided query fragments.
+- [x] 366-day maximum date range and 2,000-row hard limit.
+- [x] Server-side CSV/XLSX export from the same bounded report definitions.
+- [x] Spreadsheet formula-injection protection.
+- [x] report.read + report.export authorization boundary.
+- [x] Operational Reports Web workspace.
+- [x] PostgreSQL reporting acceptance; 70 total tests at implementation gate.
+- [x] Phase 11 implementation CI 37007447637 PASS.
+- [x] Detailed review: docs/PHASE-11-REVIEW.md.
+
 ## Current blockers
-- No Phase 10 functional blocker remains.
+- No Phase 11 functional blocker remains.
 - Historical host 73 stashes remain preserved housekeeping only.
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Phase 11 contract read
-Read reporting/export/query-protection contracts and verify the final Phase 10 documentation CI plus host 73 clean sync.
+### NEXT 1 — Phase 12 contract read
+Read Finance/Accounting, accounting-boundary, authorization, document lifecycle and posting contracts; verify final Phase 11 documentation CI and host 73 clean sync.
 
-### NEXT 2 — Operational reporting
-Implement bounded inventory, procurement, sales/CRM and management reports with tenant-scoped filters and safe pagination.
+### NEXT 2 — Finance foundation
+Implement legal-entity-scoped Chart of Accounts, fiscal periods, journals/GL and balanced posting/reversal with idempotent source posting.
 
-### NEXT 3 — Export and protections
-Add CSV/XLSX export with bounded row/query limits; prove reports do not expose arbitrary SQL or destabilize OLTP.
+### NEXT 3 — AR/AP and cross-core accounting
+Implement customer/supplier invoices, receipts/payments, tax/exchange-rate foundations and Inventory/Procurement/Sales posting contracts with subledger-to-GL reconciliation.
 
