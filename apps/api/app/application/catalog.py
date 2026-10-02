@@ -106,5 +106,6 @@ def archive_product(connection: Connection, *, context: RequestContext, product_
 def validate_conversion(factor_to_base: Decimal) -> None:
     if factor_to_base <= Decimal(0):
         raise ValueError("factor_to_base must be positive")
-    if factor_to_base.as_tuple().exponent < -8:
+    exponent = factor_to_base.as_tuple().exponent
+    if not isinstance(exponent, int) or exponent < -8:
         raise ValueError("factor_to_base supports at most 8 decimal places")
