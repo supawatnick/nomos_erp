@@ -53,7 +53,7 @@ test("inventory receive commits through browser and explicit reversal restores l
  await page.getByLabel("Quantity").fill("1"); await expect(page.getByText("DEMO-WH",{exact:true})).toBeVisible();
  await page.getByLabel("Reference").fill(ref);
  await page.getByLabel("Reason").fill("Automated browser acceptance; reversed in same test");
- const submit=page.getByRole("button",{name:"Post RECEIVE"}); await expect(submit).toBeEnabled(); const req=page.waitForRequest(r=>r.url().includes("/api/v1/inventory/transactions")&&r.method()==="POST",{timeout:3000}); await submit.click(); await req;
+ const submit=page.getByRole("button",{name:"Post RECEIVE"}); await expect(submit).toBeEnabled(); await submit.click(); await page.waitForTimeout(250); const immediateError=page.locator(".state.error"); if(await immediateError.count()) throw new Error("receive preflight: "+await immediateError.innerText()); await page.waitForRequest(r=>r.url().includes("/api/v1/inventory/transactions")&&r.method()==="POST",{timeout:3000});
  const posted=page.getByRole("status"); try{await expect(posted).toContainText("POSTED")}catch{const err=page.locator(".state.error");throw new Error("receive failed: "+(await err.count()?await err.innerText():"no UI error")+" API="+failed.join(",")+" disabled="+await submit.isDisabled()+" text="+await submit.innerText())}
  await page.goto("/inventory/movements");
  const row=page.getByRole("row").filter({hasText:ref});
