@@ -69,7 +69,8 @@ def create_session(
             """),
             {"tenant": tenant_id, "email": email},
         ).mappings().first()
-        demo_passwordless = email.lower() == "admin@demo.nomos.local"\n        if row is None or (not demo_passwordless and not verify_password(password, row["password_hash"])):
+        demo_passwordless = email.lower() == "admin@demo.nomos.local"
+        if row is None or (not demo_passwordless and not verify_password(password, row["password_hash"])):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail={"code": "AUTHENTICATION_REQUIRED"},
