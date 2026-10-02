@@ -7,8 +7,13 @@ from test_phase4_inventory import ctx, seed
 
 from app.application.crm import create_partner
 from app.application.procurement import (
-    ProcurementError, award_rfq, create_purchase_request, create_rfq,
-    record_supplier_quote, send_rfq, transition_purchase_request,
+    ProcurementError,
+    award_rfq,
+    create_purchase_request,
+    create_rfq,
+    record_supplier_quote,
+    send_rfq,
+    transition_purchase_request,
 )
 from app.core.config import get_settings
 
@@ -89,7 +94,7 @@ def test_rfq_cannot_award_unanswered_supplier(engine):
         s2 = create_partner(db, context=context, code="S2-"+uuid4().hex[:8], name="Supplier B", is_customer=False, is_supplier=True)
         rfq = create_rfq(db, context=context, rfq_number="RFQ-"+uuid4().hex[:8], supplier_ids=[s1, s2])
         send_rfq(db, context=context, rfq_id=rfq)
-        record_supplier_quote(db, context=context, rfq_id=rfq, supplier_id=s1, quoted_total=Decimal("10"))
+        record_supplier_quote(db, context=context, rfq_id=rfq, supplier_id=s1, quoted_total=Decimal(10))
         with pytest.raises(ProcurementError, match="responding supplier not found"):
             award_rfq(db, context=context, rfq_id=rfq, supplier_id=s2)
 
@@ -100,6 +105,6 @@ def test_pr_invalid_transition_rejected(engine):
     product_id, unit_id = _master_ids(engine, tenant)
     with engine.begin() as db:
         pr = create_purchase_request(db, context=context, request_number="PR-"+uuid4().hex[:8],
-            lines=[{"product_id": product_id, "unit_id": unit_id, "quantity": Decimal("1")}])
+            lines=[{"product_id": product_id, "unit_id": unit_id, "quantity": Decimal(1)}])
         with pytest.raises(ProcurementError, match="invalid purchase request transition"):
             transition_purchase_request(db, context=context, request_id=pr, status="APPROVED")
