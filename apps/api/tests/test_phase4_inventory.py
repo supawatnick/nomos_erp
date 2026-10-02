@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy import create_engine, text
 
+from app.application.master_data import archive_master
 from app.application.inventory import (
     IdempotencyConflict,
     InsufficientStock,
@@ -83,6 +84,8 @@ def test_receive_issue_idempotency_conflict_and_reconciliation(engine):
     assert balance(engine,tenant,product,a)==6
     with engine.connect() as db:
         assert reconcile_inventory(db,tenant)==[]
+        assert db.execute(text("SELECT count(*) FROM audit_logs WHERE tenant_id=:t AND action='inventory.transaction.posted'"),{"t":tenant}).scalar_one()==2
+        assert db.execute(text("SELECT count(*) FROM outbox_events WHERE tenant_id=:t AND event_type='inventory.transaction.posted'"),{"t":tenant}).scalar_one()==2
 
 
 def test_no_negative_stock_and_transfer_atomic(engine):
@@ -169,3 +172,11 @@ def test_concurrent_same_idempotency_key_creates_one_effect(engine):
     with engine.connect() as db:
         count=db.execute(text("SELECT count(*) FROM inventory_transactions WHERE tenant_id=:t AND idempotency_key='same-key'"),{"t":tenant}).scalar_one()
         assert count==1
+
+
+def test_stock_bearing_location_cannot_archive(engine):
+    tenant,entity,branch,unit,product,a,_=seed(engine)
+    context=ctx(tenant)
+    post(engine,context,entity,branch,"OPENING",StockLine(product,unit,a,Decimal(2)),"archive-opening")
+    with engine.begin() as db, pytest.raises(ValueError, match="stock-bearing location"):
+        archive_master(db,context=context,resource="location",resource_id=a)
