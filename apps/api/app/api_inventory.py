@@ -141,10 +141,17 @@ def balances(
     engine=create_engine(get_settings().database_url,pool_pre_ping=True)
     with engine.connect() as connection:
         rows=connection.execute(text("""
-            SELECT product_id,location_id,on_hand,updated_at FROM inventory_balances
-            WHERE tenant_id=:tenant ORDER BY product_id,location_id LIMIT 200
+            SELECT b.product_id,p.sku,p.name product_name,b.location_id,l.code location_code,l.name location_name,
+                   w.id warehouse_id,w.code warehouse_code,w.name warehouse_name,b.on_hand,b.updated_at
+            FROM inventory_balances b
+            JOIN products p ON p.tenant_id=b.tenant_id AND p.id=b.product_id
+            JOIN warehouse_locations l ON l.tenant_id=b.tenant_id AND l.id=b.location_id
+            JOIN warehouses w ON w.tenant_id=l.tenant_id AND w.id=l.warehouse_id
+            WHERE b.tenant_id=:tenant ORDER BY p.sku,l.code,b.product_id,b.location_id LIMIT 200
         """),{"tenant":context.tenant_id}).mappings().all()
-    data=[{"product_id":str(x["product_id"]),"location_id":str(x["location_id"]),
+    data=[{"product_id":str(x["product_id"]),"sku":x["sku"],"product_name":x["product_name"],
+           "location_id":str(x["location_id"]),"location_code":x["location_code"],"location_name":x["location_name"],
+           "warehouse_id":str(x["warehouse_id"]),"warehouse_code":x["warehouse_code"],"warehouse_name":x["warehouse_name"],
            "on_hand":format(x["on_hand"],"f"),"updated_at":x["updated_at"].isoformat()} for x in rows]
     return {"data":data,"meta":{"request_id":str(context.request_id)}}
 
