@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 WorkingDirectory=/root/nomos_erp/apps/api
 EnvironmentFile=/root/nomos_erp/apps/api/.env
-ExecStart=/root/nomos_erp/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers
+ExecStart=/root/nomos_erp/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8020 --proxy-headers
 Restart=always
 RestartSec=3
 
