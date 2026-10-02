@@ -309,12 +309,12 @@ def order_request_approval(order_id: UUID, payload: POApprovalRequestIn, request
 
 
 @router.post("/orders/{order_id}/approve")
-def order_approve(order_id: UUID, payload: POApproveIn, request: Request, authorization: str | None = Header(default=None),
+def order_approve(order_id: UUID, request: Request, payload: POApproveIn | None = None, authorization: str | None = Header(default=None),
                   x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
     context = _ctx(request, authorization, x_tenant_id)
     try:
         with _engine().begin() as db:
-            approve_purchase_order(db, context=context, order_id=order_id, approval_request_id=payload.approval_request_id)
+            approve_purchase_order(db, context=context, order_id=order_id, approval_request_id=payload.approval_request_id if payload else None)
     except ProcurementError as exc:
         raise HTTPException(409, detail={"code": "INVALID_DOCUMENT_STATE", "message": str(exc)}) from exc
     return {"data": {"id": str(order_id), "status": "APPROVED"}}
