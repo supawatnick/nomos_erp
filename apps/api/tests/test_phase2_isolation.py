@@ -44,9 +44,8 @@ def test_cross_tenant_branch_reference_rejected(postgres_connection) -> None:
         text("INSERT INTO legal_entities (id,tenant_id,code,legal_name,country_code,base_currency,timezone,status,created_at,updated_at) VALUES (:id,:tenant,'LE','Legal','TH','THB','Asia/Bangkok','ACTIVE',:now,:now)"),
         {"id": entity_a, "tenant": tenant_a, "now": now},
     )
-    with pytest.raises(IntegrityError):
-        with postgres_connection.begin_nested():
-            postgres_connection.execute(
+    with pytest.raises(IntegrityError), postgres_connection.begin_nested():
+        postgres_connection.execute(
                 text("INSERT INTO branches (id,tenant_id,legal_entity_id,code,name,status,created_at,updated_at) VALUES (:id,:tenant,:entity,'B','Branch','ACTIVE',:now,:now)"),
                 {"id": uuid4(), "tenant": tenant_b, "entity": entity_a, "now": now},
             )
