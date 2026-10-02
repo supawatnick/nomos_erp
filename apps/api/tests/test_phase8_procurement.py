@@ -8,11 +8,15 @@ from test_phase4_inventory import ctx, seed
 from app.application.crm import create_partner
 from app.application.procurement import (
     ProcurementError,
+    approve_purchase_order,
     award_rfq,
+    create_purchase_order,
     create_purchase_request,
     create_rfq,
     record_supplier_quote,
+    send_purchase_order,
     send_rfq,
+    submit_purchase_order,
     transition_purchase_request,
 )
 from app.core.config import get_settings
@@ -118,3 +122,79 @@ def test_pr_invalid_transition_rejected(engine):
             lines=[{"product_id": product_id, "unit_id": unit_id, "quantity": Decimal(1)}])
         with pytest.raises(ProcurementError, match="invalid purchase request transition"):
             transition_purchase_request(db, context=context, request_id=pr, status="APPROVED")
+
+
+def _seed_sequence(db, tenant, document_type, prefix, *, entity=None, branch=None, period="2026"):
+    db.execute(text("""INSERT INTO document_sequences
+        (id,tenant_id,document_type,legal_entity_id,branch_id,period_key,prefix,next_value,padding,updated_at)
+        VALUES (:id,:tenant,:type,:entity,:branch,:period,:prefix,1,6,now())"""),
+        {"id": uuid4(), "tenant": tenant, "type": document_type, "entity": entity,
+         "branch": branch, "period": period, "prefix": prefix})
+
+
+def test_po_approval_and_send_do_not_change_inventory(engine):
+    tenant, entity, branch, unit, product, *_ = seed(engine)
+    context = procurement_ctx(engine, tenant)
+    with engine.begin() as db:
+        supplier = create_partner(db, context=context, code="PO-SUP-"+uuid4().hex[:8],
+            name="PO Supplier", is_customer=False, is_supplier=True)
+        _seed_sequence(db, tenant, "PO", "PO-2026-", entity=entity, branch=branch)
+        before = db.execute(text("SELECT count(*) FROM inventory_transactions WHERE tenant_id=:t"),
+                            {"t": tenant}).scalar_one()
+        order_id = create_purchase_order(
+            db, context=context, legal_entity_id=entity, branch_id=branch, supplier_id=supplier,
+            currency_code="THB", period_key="2026",
+            lines=[{"product_id": product, "unit_id": unit, "quantity": Decimal(5),
+                    "unit_price": Decimal("100.25"), "discount_amount": Decimal("1.25"),
+                    "tax_amount": Decimal("35.00")}],
+        )
+        submit_purchase_order(db, context=context, order_id=order_id)
+        approve_purchase_order(db, context=context, order_id=order_id)
+        send_purchase_order(db, context=context, order_id=order_id)
+        after = db.execute(text("SELECT count(*) FROM inventory_transactions WHERE tenant_id=:t"),
+                           {"t": tenant}).scalar_one()
+        assert before == after
+        row = db.execute(text("""SELECT order_number,status,approval_fingerprint,approved_version
+            FROM purchase_orders WHERE tenant_id=:t AND id=:id"""),
+            {"t": tenant, "id": order_id}).mappings().one()
+        assert row["order_number"] == "PO-2026-000001"
+        assert row["status"] == "SENT"
+        assert row["approval_fingerprint"] and row["approved_version"] == 2
+        total = db.execute(text("""SELECT line_total FROM purchase_order_lines
+            WHERE tenant_id=:t AND purchase_order_id=:id"""),
+            {"t": tenant, "id": order_id}).scalar_one()
+        assert Decimal(total) == Decimal("535.00")
+
+
+def test_po_rejects_cross_tenant_supplier(engine):
+    t1, e1, b1, unit1, product1, *_ = seed(engine)
+    t2, *_ = seed(engine)
+    c1, c2 = procurement_ctx(engine, t1), procurement_ctx(engine, t2)
+    with engine.begin() as db:
+        foreign_supplier = create_partner(db, context=c2, code="XPO-"+uuid4().hex[:8],
+            name="Foreign PO Supplier", is_customer=False, is_supplier=True)
+        _seed_sequence(db, t1, "PO", "PO-X-", entity=e1, branch=b1)
+        with pytest.raises(ProcurementError, match="supplier not found"):
+            create_purchase_order(db, context=c1, legal_entity_id=e1, branch_id=b1,
+                supplier_id=foreign_supplier, period_key="2026",
+                lines=[{"product_id": product1, "unit_id": unit1, "quantity": Decimal(1),
+                        "unit_price": Decimal(10)}])
+
+
+def test_po_approval_requires_high_risk_permission(engine):
+    tenant, entity, branch, unit, product, *_ = seed(engine)
+    context = procurement_ctx(engine, tenant)
+    with engine.begin() as db:
+        supplier = create_partner(db, context=context, code="APP-"+uuid4().hex[:8],
+            name="Approval Supplier", is_customer=False, is_supplier=True)
+        _seed_sequence(db, tenant, "PO", "PO-A-", entity=entity, branch=branch)
+        order_id = create_purchase_order(db, context=context, legal_entity_id=entity, branch_id=branch,
+            supplier_id=supplier, period_key="2026",
+            lines=[{"product_id": product, "unit_id": unit, "quantity": Decimal(1), "unit_price": Decimal(1)}])
+        submit_purchase_order(db, context=context, order_id=order_id)
+        denied = type(context)(request_id=context.request_id, actor_user_id=context.actor_user_id,
+            tenant_id=context.tenant_id, tenant_user_id=context.tenant_user_id,
+            permissions=context.permissions - {"purchase_order.approve"})
+        with pytest.raises(Exception) as exc:
+            approve_purchase_order(db, context=denied, order_id=order_id)
+        assert getattr(exc.value, "status_code", None) == 403
