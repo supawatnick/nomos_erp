@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
+from fastapi import HTTPException
 from sqlalchemy import create_engine, text
 from test_phase4_inventory import ctx, seed
 
@@ -92,7 +93,7 @@ def test_self_approval_and_missing_policy_permission_are_denied(engine):
                 decision="APPROVED", idempotency_key="self")
         second = request_approval(db, context=actor, policy_code="SOD", source_type="PURCHASE_ORDER",
             source_id=uuid4(), source_version=1, snapshot={"version": 1})
-        with pytest.raises(Exception):
+        with pytest.raises(HTTPException):
             decide_approval(db, context=weak, approval_request_id=second,
                 decision="APPROVED", idempotency_key="weak")
 
