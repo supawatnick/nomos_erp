@@ -79,7 +79,7 @@ def _opening_row(connection: Connection, tenant: UUID, source: dict[str, Any]) -
         if not value: errors.append({"field":field,"code":"UNKNOWN_REFERENCE"})
     try:
         quantity=Decimal(str(source.get("quantity","")))
-        if quantity<=0 or max(0,-quantity.as_tuple().exponent)>8: raise InvalidOperation
+        exponent=quantity.as_tuple().exponent\n        if quantity<=0 or not isinstance(exponent,int) or max(0,-exponent)>8: raise InvalidOperation
     except (InvalidOperation,ValueError):
         quantity=Decimal(0);errors.append({"field":"quantity","code":"INVALID_DECIMAL"})
     return {"legal_entity_id":str(entity) if entity else None,"product_id":str(product) if product else None,
@@ -99,7 +99,7 @@ def validate_batch(connection: Connection, *, context: RequestContext, batch_id:
     for row in rows:
         normalized,errors=(_product_row(connection,context.tenant_id,row["source_data"]) if batch["import_type"]=="PRODUCT"
                            else _opening_row(connection,context.tenant_id,row["source_data"]))
-        identity=normalized.get("sku") if batch["import_type"]=="PRODUCT" else "|".join(str(normalized.get(k)) for k in ("product_id","location_id"))
+        identity=str(normalized.get("sku") or "") if batch["import_type"]=="PRODUCT" else "|".join(str(normalized.get(k)) for k in ("product_id","location_id"))
         if identity in seen: errors.append({"field":"row","code":"DUPLICATE_FILE_ROW"})
         seen.add(identity)
         connection.execute(text("UPDATE import_rows SET normalized_data=CAST(:n AS JSONB),errors=CAST(:e AS JSONB) WHERE id=:id"),
