@@ -15,6 +15,8 @@ from app.application.procurement import (
     create_purchase_order,
     create_purchase_request,
     create_rfq,
+    post_goods_receipt,
+    post_purchase_return,
     record_supplier_quote,
     send_purchase_order,
     send_rfq,
@@ -258,3 +260,61 @@ def order_send(order_id: UUID, request: Request, authorization: str | None = Hea
     except ProcurementError as exc:
         raise HTTPException(409, detail={"code": "INVALID_DOCUMENT_STATE", "message": str(exc)}) from exc
     return {"data": {"id": str(order_id), "status": "SENT"}}
+
+
+class ReceiptLineIn(BaseModel):
+    purchase_order_line_id: UUID
+    quantity: Decimal = Field(gt=0)
+
+
+class ReceiptIn(BaseModel):
+    location_id: UUID
+    period_key: str | None = Field(default=None, min_length=1, max_length=32)
+    lines: list[ReceiptLineIn] = Field(min_length=1)
+
+
+@router.get("/orders/{order_id}/lines")
+def order_lines(order_id: UUID, request: Request, authorization: str | None = Header(default=None),
+                x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
+    context = _ctx(request, authorization, x_tenant_id)
+    require_permission(context, "procurement.read")
+    with _engine().connect() as db:
+        rows = db.execute(text("""SELECT id,line_number,product_id,unit_id,ordered_quantity,unit_price,
+            discount_amount,tax_amount,line_total,received_quantity,returned_quantity
+            FROM purchase_order_lines WHERE tenant_id=:t AND purchase_order_id=:po ORDER BY line_number"""),
+            {"t": context.tenant_id, "po": order_id}).mappings().all()
+    return {"data": _serialize(rows), "meta": {"request_id": str(context.request_id)}}
+
+
+@router.post("/orders/{order_id}/receipts", status_code=201)
+def receipt_post(order_id: UUID, payload: ReceiptIn, request: Request,
+                 idempotency_key: str = Header(alias="Idempotency-Key"),
+                 authorization: str | None = Header(default=None),
+                 x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
+    context = _ctx(request, authorization, x_tenant_id)
+    try:
+        with _engine().begin() as db:
+            receipt_id = post_goods_receipt(db, context=context, order_id=order_id,
+                location_id=payload.location_id, lines=[line.model_dump() for line in payload.lines],
+                idempotency_key=idempotency_key, period_key=payload.period_key)
+    except ProcurementError as exc:
+        raise HTTPException(409, detail={"code": "INVALID_RECEIPT", "message": str(exc)}) from exc
+    return {"data": {"id": str(receipt_id), "status": "POSTED"},
+            "meta": {"request_id": str(context.request_id)}}
+
+
+@router.post("/orders/{order_id}/returns", status_code=201)
+def return_post(order_id: UUID, payload: ReceiptIn, request: Request,
+                idempotency_key: str = Header(alias="Idempotency-Key"),
+                authorization: str | None = Header(default=None),
+                x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
+    context = _ctx(request, authorization, x_tenant_id)
+    try:
+        with _engine().begin() as db:
+            return_id = post_purchase_return(db, context=context, order_id=order_id,
+                location_id=payload.location_id, lines=[line.model_dump() for line in payload.lines],
+                idempotency_key=idempotency_key, period_key=payload.period_key)
+    except ProcurementError as exc:
+        raise HTTPException(409, detail={"code": "INVALID_RETURN", "message": str(exc)}) from exc
+    return {"data": {"id": str(return_id), "status": "POSTED"},
+            "meta": {"request_id": str(context.request_id)}}
