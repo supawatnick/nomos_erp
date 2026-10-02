@@ -1,12 +1,8 @@
-"""phase 1 baseline"""
-from typing import Sequence, Union
-revision: str = "0001_phase1_baseline"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
-
-def upgrade() -> None:
-    pass
-
-def downgrade() -> None:
-    pass
+from alembic import op
+import sqlalchemy as sa
+revision = '0001_phase1_baseline'
+down_revision = None
+def upgrade():
+    op.create_table('system_metadata', sa.Column('key', sa.String(100), primary_key=True), sa.Column('value', sa.Text(), nullable=False))
+def downgrade():
+    op.drop_table('system_metadata')
