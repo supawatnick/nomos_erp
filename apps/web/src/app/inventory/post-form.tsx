@@ -40,7 +40,7 @@ export default function InventoryPostForm({kind}:Props){
  }
  const title={RECEIVE:"Receive Stock",ISSUE:"Issue Stock",TRANSFER:"Transfer Stock",ADJUST:"Adjust Stock"}[kind];
  return <main className="erp-main"><div className="page-head"><div><p className="eyebrow">INVENTORY · {kind}</p><h1>{title}</h1><p>Posts through the authoritative inventory engine. The Web does not calculate or mutate balances directly.</p></div><Link className="button secondary" href="/inventory">Inventory</Link></div>
- {loading?<div className="state">Loading posting context…</div>:<form className="posting-form" onSubmit={submit}>
+ {loading?<div className="state">Loading posting context…</div>:<form className="posting-form" onSubmit={e=>void submit(e)}>
  <div className="form-grid"><label>Product<select required value={productId} onChange={e=>setProductId(e.target.value)}><option value="">Select product</option>{products.map(x=><option key={x.id} value={x.id}>{x.sku} · {x.name}</option>)}</select></label>
  <label>Source Location<select required value={locationId} onChange={e=>{setLocationId(e.target.value);setDestination("")}}><option value="">Select location</option>{locations.map(x=><option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</select></label>
  {kind==="TRANSFER"&&<label>Destination Location<select required value={destination} onChange={e=>setDestination(e.target.value)}><option value="">Select destination</option>{destinations.map(x=><option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</select></label>}
