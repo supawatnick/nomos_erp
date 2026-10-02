@@ -16,6 +16,7 @@ from app.application.sales import (
     create_quotation,
     post_delivery,
     post_sales_return,
+    release_reservations,
     reserve_order,
     revise_quotation,
     send_quotation,
