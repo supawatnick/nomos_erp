@@ -40,3 +40,27 @@ test("inventory operational navigation renders without client errors",async({pag
  }
  expect(errors).toEqual([]);
 });
+
+
+test("inventory receive commits through browser and explicit reversal restores ledger state",async({page})=>{
+ await page.goto("/login");await page.getByRole("button",{name:"Sign in to NOMOS"}).click();await expect(page).toHaveURL(/\/$/);
+ const ref="E2E-RECEIVE-"+Date.now();
+ await page.goto("/inventory/receive");
+ await expect(page.getByRole("heading",{name:"Receive Stock"})).toBeVisible();
+ await page.getByLabel("Product").selectOption({index:1});
+ await page.getByLabel("Source Location").selectOption({index:1});
+ await page.getByLabel("Quantity").fill("1");
+ await page.getByLabel("Reference").fill(ref);
+ await page.getByLabel("Reason").fill("Automated browser acceptance; reversed in same test");
+ await page.getByRole("button",{name:"Post RECEIVE"}).click();
+ await expect(page.getByRole("status")).toContainText("POSTED");
+ await page.goto("/inventory/movements");
+ const row=page.getByRole("row").filter({hasText:ref});
+ await expect(row).toBeVisible();
+ await expect(row.getByText("RECEIVE",{exact:true})).toBeVisible();
+ page.once("dialog",d=>d.accept("Automated E2E cleanup reversal"));
+ await row.getByRole("button",{name:"Reverse"}).click();
+ await expect(page.getByRole("status")).toContainText("Reversal posted");
+ await expect(page.getByRole("row").filter({hasText:"REVERSAL"}).first()).toBeVisible();
+ await expect(page.locator(".state.error")).toHaveCount(0);
+});
