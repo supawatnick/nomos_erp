@@ -99,8 +99,13 @@ def post_stock_count(connection: Connection, *, context: RequestContext, count_i
     for row in rows:
         variance=Decimal(row["counted_quantity"])-Decimal(row["system_quantity"])
         if variance:
+            unit_precision: int=connection.execute(
+                text("SELECT precision FROM units WHERE tenant_id=:tenant AND id=:unit"),
+                {"tenant":context.tenant_id,"unit":row["unit_id"]},
+            ).scalar_one()
+            quantity=abs(variance).quantize(Decimal(1).scaleb(-unit_precision))
             lines.append(StockLine(product_id=row["product_id"],unit_id=row["unit_id"],location_id=row["location_id"],
-                                   quantity=abs(variance),adjustment_direction=1 if variance>0 else -1))
+                                   quantity=quantity,adjustment_direction=1 if variance>0 else -1))
     tx_id: UUID | None=None
     if lines:
         tx_id=post_inventory(connection,context=context,transaction_type="ADJUST",legal_entity_id=count["legal_entity_id"],
