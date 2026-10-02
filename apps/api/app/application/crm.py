@@ -90,7 +90,7 @@ def transition_lead(db:Connection,*,context:RequestContext,lead_id:UUID,status:s
 
 def create_opportunity(db:Connection,*,context:RequestContext,opportunity_number:str,name:str,lead_id:UUID|None=None,
                        partner_id:UUID|None=None,owner_tenant_user_id:UUID|None=None,currency_code:str="THB",
-                       estimated_amount:Decimal=Decimal("0"),expected_close_date:date|None=None)->UUID:
+                       estimated_amount:Decimal=Decimal(0),expected_close_date:date|None=None)->UUID:
     require_permission(context,"crm.manage")
     if lead_id is None and partner_id is None: raise CRMError("lead or partner required")
     if estimated_amount<0: raise CRMError("estimated amount cannot be negative")
