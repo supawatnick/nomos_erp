@@ -128,7 +128,9 @@ def transactions(
         item["posted_at"]=item["posted_at"].isoformat()
         data.append(item)
     return {"data":data,"meta":{"request_id":str(context.request_id)}}
-\n\n@router.get("/balances")
+
+
+@router.get("/balances")
 def balances(
     request: Request,
     authorization: str | None = Header(default=None),
