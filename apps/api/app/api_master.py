@@ -347,8 +347,11 @@ def master_archive(
         raise HTTPException(status_code=404, detail={"code": "RESOURCE_NOT_FOUND"})
     context = trusted_context(request, authorization, x_tenant_id)
     engine = create_engine(get_settings().database_url, pool_pre_ping=True)
-    with engine.begin() as connection:
-        changed = archive_master(connection, context=context, resource=resource, resource_id=resource_id)
+    try:
+        with engine.begin() as connection:
+            changed = archive_master(connection, context=context, resource=resource, resource_id=resource_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail={"code": "INVALID_DOCUMENT_STATE"}) from exc
     if not changed:
         raise HTTPException(status_code=404, detail={"code": "RESOURCE_NOT_FOUND"})
     return {"data": {"id": str(resource_id), "status": "ARCHIVED"}, "meta": {"request_id": str(context.request_id)}}
