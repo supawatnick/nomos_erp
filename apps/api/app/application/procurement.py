@@ -30,12 +30,32 @@ def _product_unit_owned(db: Connection, tenant_id: UUID, product_id: UUID, unit_
         ))"""), {"t": tenant_id, "p": product_id, "u": unit_id}).first() is not None
 
 
-def create_purchase_request(db: Connection, *, context: RequestContext, request_number: str,
-                            lines: list[dict], needed_by: date | None = None, reason: str | None = None) -> UUID:
+def _allocate_tenant_document_number(db: Connection, tenant_id: UUID, document_type: str,
+                                     period_key: str | None = None) -> str:
+    period = period_key or str(datetime.now(UTC).year)
+    db.execute(text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+               {"key": f"{tenant_id}:{document_type}:{period}"})
+    configured = db.execute(text("""SELECT 1 FROM document_sequences
+        WHERE tenant_id=:t AND document_type=:type AND legal_entity_id IS NULL
+          AND branch_id IS NULL AND period_key=:period"""),
+        {"t": tenant_id, "type": document_type, "period": period}).first()
+    if not configured:
+        db.execute(text("""INSERT INTO document_sequences
+            (id,tenant_id,document_type,legal_entity_id,branch_id,period_key,prefix,next_value,padding,updated_at)
+            VALUES (:id,:t,:type,NULL,NULL,:period,:prefix,1,6,now())"""),
+            {"id": uuid4(), "t": tenant_id, "type": document_type, "period": period,
+             "prefix": f"{document_type}-{period}-"})
+    return allocate_document_number(db, tenant_id=tenant_id, document_type=document_type, period_key=period)
+
+
+def create_purchase_request(db: Connection, *, context: RequestContext, lines: list[dict],
+                            needed_by: date | None = None, reason: str | None = None,
+                            period_key: str | None = None, request_number: str | None = None) -> UUID:
     require_permission(context, "purchase_request.manage")
     if not lines:
         raise ProcurementError("purchase request requires at least one line")
     rid, now = uuid4(), datetime.now(UTC)
+    request_number = _allocate_tenant_document_number(db, context.tenant_id, "PR", period_key)
     db.execute(text("""INSERT INTO purchase_requests
       (id,tenant_id,request_number,status,requested_by_tenant_user_id,needed_by,reason,version,created_at,updated_at)
       VALUES (:id,:t,:number,'DRAFT',:requester,:needed,:reason,1,:now,:now)"""),
@@ -79,9 +99,10 @@ def transition_purchase_request(db: Connection, *, context: RequestContext, requ
     _audit(db, context, f"procurement.request.{verb}", "purchase_request", request_id)
 
 
-def create_rfq(db: Connection, *, context: RequestContext, rfq_number: str, supplier_ids: list[UUID],
+def create_rfq(db: Connection, *, context: RequestContext, supplier_ids: list[UUID],
                purchase_request_id: UUID | None = None, currency_code: str = "THB",
-               response_due_date: date | None = None) -> UUID:
+               response_due_date: date | None = None, period_key: str | None = None,
+               rfq_number: str | None = None) -> UUID:
     require_permission(context, "rfq.manage")
     if not supplier_ids:
         raise ProcurementError("RFQ requires at least one supplier")
@@ -98,6 +119,7 @@ def create_rfq(db: Connection, *, context: RequestContext, rfq_number: str, supp
         if not ok:
             raise ProcurementError("supplier not found")
     rfq_id, now = uuid4(), datetime.now(UTC)
+    rfq_number = _allocate_tenant_document_number(db, context.tenant_id, "RFQ", period_key)
     db.execute(text("""INSERT INTO procurement_rfqs
       (id,tenant_id,rfq_number,purchase_request_id,status,currency_code,response_due_date,version,created_at,updated_at)
       VALUES (:id,:t,:number,:pr,'DRAFT',:currency,:due,1,:now,:now)"""),
