@@ -7,13 +7,13 @@ from pydantic import BaseModel
 
 from app.api_admin import router as admin_router
 from app.api_approvals import router as approvals_router
-from app.api_reports import router as reports_router
 from app.api_crm import router as crm_router
 from app.api_imports import router as imports_router
 from app.api_inventory import router as inventory_router
 from app.api_inventory_operations import router as inventory_operations_router
 from app.api_master import router as master_router
 from app.api_procurement import router as procurement_router
+from app.api_reports import router as reports_router
 from app.api_sales import router as sales_router
 from app.application.auth import create_session, resolve_session, revoke_session
 from app.core.config import get_settings
