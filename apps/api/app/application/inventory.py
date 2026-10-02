@@ -37,7 +37,7 @@ class StockLine:
 
 PERMISSION = {
     "RECEIVE": "inventory.receive",
-    "OPENING": "inventory.receive",
+    "OPENING": "inventory.adjust",
     "ISSUE": "inventory.issue",
     "TRANSFER": "inventory.transfer",
     "ADJUST": "inventory.adjust",
