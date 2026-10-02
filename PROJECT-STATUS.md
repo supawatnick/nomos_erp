@@ -3,11 +3,11 @@
 > Operational handoff/source of truth. Read after AGENTS.md before every work session.
 
 ## Current stage
-Phase 14 Commercial SaaS Layer
+Phase 15 Commercial Hardening Closure
 
-Overall status: **PHASE 14 PASS — PHASE 13 DEFERRED / NOT PASS — READY FOR PHASE 15**
+Overall status: **PHASE 15 PASS FOR CONTROLLED COMMERCIAL PILOT — PHASE 13 DEFERRED / NOT PASS**
 
-Primary objective: close Phase 14 on host 73, then begin Phase 15 Commercial Hardening; Phase 13 LINE remains deferred and is not PASS.
+Primary objective: maintain the Phase 15 controlled-pilot baseline; Phase 13 LINE remains the only deferred implementation phase and is not PASS.
 
 ## Completed
 
@@ -276,17 +276,30 @@ Primary objective: close Phase 14 on host 73, then begin Phase 15 Commercial Har
 - [x] Phase 14 implementation CI 37013634604 PASS.
 - [x] Detailed review: docs/PHASE-14-REVIEW.md.
 
+## Phase 15 — Commercial Hardening
+- [x] Security/dependency/secret gates.
+- [x] Load/read-latency smoke and inventory concurrency acceptance.
+- [x] Cross-core Inventory/GL/source reconciliation snapshot.
+- [x] Production upgrade/recovery runbook.
+- [x] Incident readiness runbook.
+- [x] Observability/alert and pilot SLO targets.
+- [x] Host 73 PostgreSQL backup/restore drill: 829K backup, isolated restore, Alembic 0019 verified, 2 seconds.
+- [x] Implementation CI 37017699870 PASS — 82 PostgreSQL/API tests plus full Web/security gate.
+- [x] Host 73 runtime suite 82 passed, clean, 0/0 divergence, stashes preserved.
+- [x] Detailed review: docs/PHASE-15-REVIEW.md.
+- [x] Controlled commercial pilot hardening gate met.
+
 ## Current blockers
 - No Phase 12 functional blocker remains.
 - Historical host 73 stashes remain preserved housekeeping only.
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Final Phase 14 closure
-Verify documentation CI, synchronize host 73 through Alembic 0019, run full PostgreSQL/API suite and confirm clean 0/0 Git divergence with historical stashes preserved.
+### NEXT 1 — Final Phase 15 documentation closure
+Verify final documentation CI and fast-forward host 73 to the documentation baseline without touching preserved stashes.
 
-### NEXT 2 — Phase 15 contract read
-Read security, operations, observability, backup/restore, migration and cross-core reconciliation contracts from the verified Phase 14 baseline.
+### NEXT 2 — Controlled pilot operation
+Use docs/PRODUCTION-RUNBOOK.md, docs/INCIDENT-RUNBOOK.md and docs/OBSERVABILITY.md for pilot deployment/operations. Do not market the pilot thresholds as a public SLA until production telemetry demonstrates them.
 
-### NEXT 3 — Commercial hardening
-Execute security review, load/concurrency acceptance, backup/PITR/restore drills, observability/alerts, upgrade/migration runbooks, incident readiness and end-to-end four-core reconciliation. Phase 13 remains DEFERRED / NOT PASS.
+### NEXT 3 — Deferred Phase 13
+Resume LINE only by product decision. Until its signed/deduplicated webhook, secure linking and same-use-case permission acceptance pass, keep Phase 13 DEFERRED / NOT PASS and do not claim Integrated Channel ERP V1 or complete sequential phases 0–15.
