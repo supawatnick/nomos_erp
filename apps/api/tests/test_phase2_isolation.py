@@ -168,3 +168,30 @@ def test_idempotency_replay_and_conflict(postgres_connection) -> None:
     assert first == (True, True)
     assert replay == (False, True)
     assert conflict == (False, False)
+
+
+def test_revoked_session_cannot_resolve(postgres_connection) -> None:
+    now = datetime.now(UTC)
+    tenant_id, user_id, membership_id, session_id = uuid4(), uuid4(), uuid4(), uuid4()
+    token = "revoked-" + uuid4().hex
+    postgres_connection.execute(
+        text("INSERT INTO tenants (id,slug,name,status,default_locale,default_timezone,base_currency,created_at,updated_at) VALUES (:id,:slug,'T','ACTIVE','th-TH','Asia/Bangkok','THB',:now,:now)"),
+        {"id": tenant_id, "slug": "revoked-" + tenant_id.hex, "now": now},
+    )
+    postgres_connection.execute(
+        text("INSERT INTO users (id,email,password_hash,display_name,status,created_at,updated_at) VALUES (:id,:email,'x','U','ACTIVE',:now,:now)"),
+        {"id": user_id, "email": user_id.hex + "@example.invalid", "now": now},
+    )
+    postgres_connection.execute(
+        text("INSERT INTO tenant_users (id,tenant_id,user_id,status,joined_at,created_at,updated_at) VALUES (:id,:tenant,:user,'ACTIVE',:now,:now,:now)"),
+        {"id": membership_id, "tenant": tenant_id, "user": user_id, "now": now},
+    )
+    postgres_connection.execute(
+        text("INSERT INTO sessions (id,user_id,token_hash,expires_at,revoked_at,created_at) VALUES (:id,:user,:hash,:expires,:now,:now)"),
+        {"id": session_id, "user": user_id, "hash": hash_session_token(token), "expires": now + timedelta(hours=1), "now": now},
+    )
+    postgres_connection.commit()
+    from fastapi import HTTPException
+    with pytest.raises(HTTPException) as exc:
+        resolve_session(token, tenant_id, uuid4())
+    assert exc.value.status_code == 401
