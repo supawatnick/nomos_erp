@@ -14,7 +14,10 @@ from app.core.config import get_settings
 
 @pytest.fixture
 def db():
-    engine = create_engine(get_settings().database_url)
+    url = get_settings().database_url
+    if not url.startswith("postgresql"):
+        pytest.skip("Phase 3 database acceptance gate requires PostgreSQL")
+    engine = create_engine(url)
     connection = engine.connect()
     tx = connection.begin()
     try:
