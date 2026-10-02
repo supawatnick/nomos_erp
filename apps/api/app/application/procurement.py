@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import Connection, text
 
+from app.application.approvals import mark_executed, request_approval, require_approved_snapshot
 from app.application.inventory import StockLine, post_procurement_inventory
 from app.application.numbering import allocate_document_number
 from app.domain.security import RequestContext, require_permission
@@ -343,8 +344,42 @@ def submit_purchase_order(db: Connection, *, context: RequestContext, order_id: 
     _audit(db, context, "procurement.order.submitted", "purchase_order", order_id)
 
 
-def approve_purchase_order(db: Connection, *, context: RequestContext, order_id: UUID) -> None:
+
+def _purchase_order_approval_snapshot(db: Connection, tenant_id: UUID, order_id: UUID) -> tuple[dict, int]:
+    order = db.execute(text("""SELECT supplier_id,currency_code,status,version FROM purchase_orders
+        WHERE tenant_id=:t AND id=:id"""), {"t": tenant_id, "id": order_id}).mappings().first()
+    if not order:
+        raise ProcurementError("purchase order not found")
+    lines = db.execute(text("""SELECT product_id,unit_id,ordered_quantity,unit_price,discount_amount,tax_amount
+        FROM purchase_order_lines WHERE tenant_id=:t AND purchase_order_id=:id ORDER BY line_number"""),
+        {"t": tenant_id, "id": order_id}).mappings().all()
+    snapshot = {"supplier_id": str(order["supplier_id"]), "currency_code": order["currency_code"],
+                "status": order["status"], "version": int(order["version"]),
+                "lines": [{k: str(v) for k, v in dict(line).items()} for line in lines]}
+    return snapshot, int(order["version"])
+
+
+def request_purchase_order_approval(
+    db: Connection, *, context: RequestContext, order_id: UUID, policy_code: str
+) -> UUID:
+    require_permission(context, "purchase_order.manage")
+    snapshot, version = _purchase_order_approval_snapshot(db, context.tenant_id, order_id)
+    if snapshot["status"] != "PENDING_APPROVAL":
+        raise ProcurementError("purchase order must be pending approval")
+    return request_approval(db, context=context, policy_code=policy_code,
+        source_type="PURCHASE_ORDER", source_id=order_id, source_version=version, snapshot=snapshot)
+
+def approve_purchase_order(db: Connection, *, context: RequestContext, order_id: UUID, approval_request_id: UUID | None = None) -> None:
     require_permission(context, "purchase_order.approve")
+    active_control = db.execute(text("""SELECT 1 FROM approval_policies
+        WHERE tenant_id=:t AND request_type='PURCHASE_ORDER' AND status='ACTIVE' LIMIT 1"""),
+        {"t": context.tenant_id}).first()
+    if active_control:
+        if approval_request_id is None:
+            raise ProcurementError("approved approval request required")
+        snapshot, source_version = _purchase_order_approval_snapshot(db, context.tenant_id, order_id)
+        require_approved_snapshot(db, context=context, approval_request_id=approval_request_id,
+            source_type="PURCHASE_ORDER", source_id=order_id, source_version=source_version, snapshot=snapshot)
     order = db.execute(text("""SELECT status,version,supplier_id,currency_code FROM purchase_orders
         WHERE tenant_id=:t AND id=:id FOR UPDATE"""),
         {"t": context.tenant_id, "id": order_id}).mappings().first()
@@ -365,6 +400,9 @@ def approve_purchase_order(db: Connection, *, context: RequestContext, order_id:
          "actor": context.tenant_user_id, "t": context.tenant_id, "id": order_id})
     _audit(db, context, "procurement.order.approved", "purchase_order", order_id,
            {"approved_version": approved_version, "fingerprint": fingerprint})
+    if active_control and approval_request_id is not None:
+        mark_executed(db, context=context, approval_request_id=approval_request_id,
+                      execution_reference=f"PURCHASE_ORDER:{order_id}")
 
 
 def send_purchase_order(db: Connection, *, context: RequestContext, order_id: UUID) -> None:
