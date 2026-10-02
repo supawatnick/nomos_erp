@@ -9,11 +9,48 @@ from sqlalchemy.exc import IntegrityError
 
 from app.application.auth import resolve_session
 from app.application.catalog import CatalogRepository, archive_product, create_product
+from app.application.master_data import (
+    archive_master,
+    create_category,
+    create_location,
+    create_unit,
+    create_warehouse,
+    list_rows,
+)
 from app.application.warehouse import WarehouseRepository
 from app.core.config import get_settings
 from app.domain.security import RequestContext, require_permission
 
 router = APIRouter(prefix="/api/v1")
+
+
+class CategoryCreate(BaseModel):
+    code: str = Field(min_length=1, max_length=64)
+    name: str = Field(min_length=1, max_length=200)
+    parent_id: UUID | None = None
+
+
+class UnitCreate(BaseModel):
+    code: str = Field(min_length=1, max_length=32)
+    name: str = Field(min_length=1, max_length=100)
+    symbol: str | None = Field(default=None, max_length=24)
+    precision: int = Field(default=0, ge=0, le=8)
+
+
+class WarehouseCreate(BaseModel):
+    legal_entity_id: UUID
+    branch_id: UUID | None = None
+    code: str = Field(min_length=1, max_length=64)
+    name: str = Field(min_length=1, max_length=200)
+
+
+class LocationCreate(BaseModel):
+    warehouse_id: UUID
+    parent_id: UUID | None = None
+    code: str = Field(min_length=1, max_length=64)
+    name: str = Field(min_length=1, max_length=160)
+    location_type: str = "STORAGE"
+    allow_stock: bool = True
 
 
 class ProductCreate(BaseModel):
@@ -168,3 +205,134 @@ def master_summary(
                 {"tenant": context.tenant_id},
             ).scalar_one()
     return {"data": counts, "meta": {"request_id": str(context.request_id)}}
+
+
+def serialize_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    for row in rows:
+        for key, value in list(row.items()):
+            if isinstance(value, UUID):
+                row[key] = str(value)
+    return rows
+
+
+@router.get("/categories")
+def categories_list(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> dict[str, object]:
+    context = trusted_context(request, authorization, x_tenant_id)
+    require_permission(context, "product.read")
+    engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+    with engine.connect() as connection:
+        rows = list_rows(connection, table="categories", tenant_id=context.tenant_id)
+    return {"data": serialize_rows(rows), "meta": {"request_id": str(context.request_id)}}
+
+
+@router.post("/categories", status_code=201)
+def categories_create(
+    payload: CategoryCreate, request: Request,
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> dict[str, object]:
+    context = trusted_context(request, authorization, x_tenant_id)
+    engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+    try:
+        with engine.begin() as connection:
+            resource_id = create_category(connection, context=context, **payload.model_dump())
+    except IntegrityError as exc:
+        raise HTTPException(status_code=409, detail={"code": "DUPLICATE_RESOURCE"}) from exc
+    return {"data": {"id": str(resource_id)}, "meta": {"request_id": str(context.request_id)}}
+
+
+@router.get("/units")
+def units_list(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> dict[str, object]:
+    context = trusted_context(request, authorization, x_tenant_id)
+    require_permission(context, "product.read")
+    engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+    with engine.connect() as connection:
+        rows = list_rows(connection, table="units", tenant_id=context.tenant_id)
+    return {"data": serialize_rows(rows), "meta": {"request_id": str(context.request_id)}}
+
+
+@router.post("/units", status_code=201)
+def units_create(
+    payload: UnitCreate, request: Request,
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> dict[str, object]:
+    context = trusted_context(request, authorization, x_tenant_id)
+    engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+    try:
+        with engine.begin() as connection:
+            resource_id = create_unit(connection, context=context, **payload.model_dump())
+    except IntegrityError as exc:
+        raise HTTPException(status_code=409, detail={"code": "DUPLICATE_RESOURCE"}) from exc
+    return {"data": {"id": str(resource_id)}, "meta": {"request_id": str(context.request_id)}}
+
+
+@router.post("/warehouses", status_code=201)
+def warehouses_create(
+    payload: WarehouseCreate, request: Request,
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> dict[str, object]:
+    context = trusted_context(request, authorization, x_tenant_id)
+    engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+    try:
+        with engine.begin() as connection:
+            resource_id = create_warehouse(connection, context=context, **payload.model_dump())
+    except IntegrityError as exc:
+        raise HTTPException(status_code=409, detail={"code": "VALIDATION_FAILED"}) from exc
+    return {"data": {"id": str(resource_id)}, "meta": {"request_id": str(context.request_id)}}
+
+
+@router.get("/locations")
+def locations_list(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> dict[str, object]:
+    context = trusted_context(request, authorization, x_tenant_id)
+    require_permission(context, "warehouse.read")
+    engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+    with engine.connect() as connection:
+        rows = list_rows(connection, table="locations", tenant_id=context.tenant_id)
+    return {"data": serialize_rows(rows), "meta": {"request_id": str(context.request_id)}}
+
+
+@router.post("/locations", status_code=201)
+def locations_create(
+    payload: LocationCreate, request: Request,
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> dict[str, object]:
+    context = trusted_context(request, authorization, x_tenant_id)
+    engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+    try:
+        with engine.begin() as connection:
+            resource_id = create_location(connection, context=context, **payload.model_dump())
+    except (IntegrityError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail={"code": "VALIDATION_FAILED"}) from exc
+    return {"data": {"id": str(resource_id)}, "meta": {"request_id": str(context.request_id)}}
+
+
+@router.post("/{resource}/{resource_id}/archive")
+def master_archive(
+    resource: str, resource_id: UUID, request: Request,
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> dict[str, object]:
+    if resource not in {"category", "warehouse", "location"}:
+        raise HTTPException(status_code=404, detail={"code": "RESOURCE_NOT_FOUND"})
+    context = trusted_context(request, authorization, x_tenant_id)
+    engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+    with engine.begin() as connection:
+        changed = archive_master(connection, context=context, resource=resource, resource_id=resource_id)
+    if not changed:
+        raise HTTPException(status_code=404, detail={"code": "RESOURCE_NOT_FOUND"})
+    return {"data": {"id": str(resource_id), "status": "ARCHIVED"}, "meta": {"request_id": str(context.request_id)}}
