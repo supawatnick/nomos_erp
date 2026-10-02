@@ -26,10 +26,10 @@ def reconciliation_snapshot(db: Connection, *, tenant_id: UUID) -> dict[str, obj
       SELECT source_module,source_type,source_id,source_effect,count(*) FROM journal_entries
       WHERE tenant_id=:t AND reversal_of_id IS NULL GROUP BY source_module,source_type,source_id,source_effect HAVING count(*)>1
     ) x"""),{"t":tenant_id}).scalar_one()
-    ar: Decimal = db.execute(text("""SELECT COALESCE(sum(total_amount-paid_amount),0) FROM customer_invoices
-      WHERE tenant_id=:t AND status IN ('POSTED','PARTIALLY_PAID')"""),{"t":tenant_id}).scalar_one()
-    ap: Decimal = db.execute(text("""SELECT COALESCE(sum(total_amount-paid_amount),0) FROM supplier_invoices
-      WHERE tenant_id=:t AND status IN ('POSTED','PARTIALLY_PAID')"""),{"t":tenant_id}).scalar_one()
+    ar: Decimal = db.execute(text("""SELECT COALESCE(sum(total_amount-settled_amount),0) FROM finance_invoices
+      WHERE tenant_id=:t AND invoice_type='CUSTOMER' AND status IN ('POSTED','PARTIALLY_SETTLED')"""),{"t":tenant_id}).scalar_one()
+    ap: Decimal = db.execute(text("""SELECT COALESCE(sum(total_amount-paid_amount),0) FROM finance_invoices
+      WHERE tenant_id=:t AND invoice_type='SUPPLIER' AND status IN ('POSTED','PARTIALLY_SETTLED')"""),{"t":tenant_id}).scalar_one()
     return {"inventory_quantity_variance":str(Decimal(inventory_variance)),"unbalanced_journals":int(unbalanced),
             "duplicate_financial_sources":int(duplicate_sources),"ar_open_amount":str(Decimal(ar)),
             "ap_open_amount":str(Decimal(ap)),"healthy":Decimal(inventory_variance)==0 and unbalanced==0 and duplicate_sources==0}
