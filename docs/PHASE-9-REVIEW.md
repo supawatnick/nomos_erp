@@ -24,7 +24,9 @@ Migration `0012_phase9_sales` adds quotations/revisions/lines, sales orders/line
 
 ## Acceptance evidence
 Implementation head: `65415e9369354c378f359cd40b5b07dc50283302`.
-GitHub Actions run `36998921435`: **SUCCESS**.
+Implementation GitHub Actions run `36998921435`: **SUCCESS**.
+Final closure GitHub Actions run `37000090937`: **SUCCESS** on `9a5872695d492b8c669ddf47957cbeebe85d7bfe`.
+CI secret scanning now uses pinned Gitleaks CLI `v8.28.0` directly, avoiding the licensed Action/API dependency; full-history scan passes with one narrowly reviewed historical documentation false-positive allowlist.
 - Ruff: PASS.
 - mypy: PASS.
 - Alembic through 0012: PASS.
