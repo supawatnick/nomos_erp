@@ -3,11 +3,11 @@
 > Operational handoff/source of truth. Read after AGENTS.md before every work session.
 
 ## Current stage
-Phase 8 Procurement & Purchasing Closure
+Phase 9 Sales & CRM Closure
 
-Overall status: **PHASE 8 PASS — READY FOR PHASE 9**
+Overall status: **PHASE 9 PASS — READY FOR PHASE 10**
 
-Primary objective: begin Phase 9 Sales & CRM commercial documents from the clean Phase 8 baseline on host 73 only.
+Primary objective: begin Phase 10 Approval & commercial controls from the clean Phase 9 baseline on host 73 only.
 
 ## Completed
 
@@ -215,20 +215,37 @@ Primary objective: begin Phase 9 Sales & CRM commercial documents from the clean
 - No Phase 8 functional blocker remains.
 - Preserved host 73 pre-sync stashes remain housekeeping only; do not apply/drop without review.
 
+## Phase 9 — Sales & CRM
+- [x] QT numbering, exact commercial lines, validity/expiry and revision snapshots.
+- [x] QT send/revise/accept with accepted revision evidence and QT -> SO traceability.
+- [x] Sales Order confirmation without physical stock mutation.
+- [x] Reservation/release with on-hand vs available semantics and row-lock concurrency boundary.
+- [x] Partial delivery through Inventory ISSUE and sales return through Inventory RECEIVE.
+- [x] Idempotent fulfillment and quantity/status reconciliation.
+- [x] Order status timeline.
+- [x] Sales Web operations surface.
+- [x] Phase 9 review — docs/PHASE-9-REVIEW.md.
+- [x] Implementation acceptance CI 36998921435 PASS on 65415e9369354c378f359cd40b5b07dc50283302.
+
+## Current blockers
+- No Phase 9 functional blocker remains.
+- Preserved host 73 historical stashes remain housekeeping only; do not apply/drop without review.
+
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Phase 9 contract read and clean-baseline verification
-Read the Phase 9 Sales & CRM commercial-document contracts and verify host 73 is synced to the final Phase 8 documentation commit with a clean working tree.
+### NEXT 1 — Phase 10 contract read and clean-baseline verification
+Read approval/commercial-control contracts and verify host 73 is synced to final Phase 9 documentation commit with a clean working tree.
 
-### NEXT 2 — Phase 9 Quotation
-Implement quotation revision/acceptance lifecycle without physical stock effects.
+### NEXT 2 — Approval policy and stale-state binding
+Implement approval policy/request/step/decision persistence with version/fingerprint revalidation and separation-of-duties boundaries.
 
-### NEXT 3 — Phase 9 Sales Order and Inventory boundary
-Implement Sales Order lifecycle and explicit Inventory reservation/delivery orchestration according to MASTER-PLAN.
+### NEXT 3 — Commercial controls integration
+Apply approval controls to purchasing, sales discount/credit exceptions, inventory adjustments and later Finance-ready controls without bypassing module permissions.
 
 ## Latest activity
-- Phase 8 Procurement & Purchasing implementation complete.
-- Final implementation acceptance GitHub Actions run 36996602994 PASS.
-- Goods Receipt and Purchase Return are routed through Inventory with atomic state advancement and idempotent stock effects.
-- RFQ line comparison, dedicated PR commands, server-side PR/RFQ/PO numbering and Procurement Web surface completed.
-- Immediate next executable action is Phase 9 contract read after final Phase 8 documentation CI is green.
+- Phase 9 Sales & CRM implementation complete.
+- Implementation acceptance GitHub Actions run 36998921435 PASS.
+- QT revisions/expiry/acceptance and QT -> SO traceability completed.
+- Reservation available-stock semantics, release, partial delivery/return and Inventory integration completed.
+- Sales order timeline and Web operations surface completed.
+- Immediate next executable action is Phase 10 contract read after final Phase 9 documentation CI is green.
