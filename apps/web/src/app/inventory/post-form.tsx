@@ -49,6 +49,6 @@ export default function InventoryPostForm({kind}:Props){
  <label className="wide">Reason<input value={reason} onChange={e=>setReason(e.target.value)} placeholder={kind==="ADJUST"?"Required by operating policy":"Optional operational reason"}/></label></div>
  <div className="posting-context"><span>Legal entity</span><strong className="mono">{warehouse?.legal_entity_id.slice(0,8)??"—"}</strong><span>Warehouse</span><strong>{warehouse?.code??"—"}</strong><span>Base unit</span><strong className="mono">{product?.base_unit_id.slice(0,8)??"—"}</strong></div>
  {error&&<div className="state error" role="alert">{error}</div>}{success&&<div className="state success" role="status">{success} · <Link href="/inventory/movements">View movement</Link></div>}
- <div className="form-actions"><button className="button" disabled={submitting||!!success} type="button" onClick={()=>void submit()}>{submitting?"Posting…":retryKey?"Retry safely":"Post "+kind}</button>{retryKey&&<span className="hint">Retry uses the same Idempotency-Key.</span>}</div>
+ <div className="form-actions"><button className="button" disabled={submitting||!!success} type="submit">{submitting?"Posting…":retryKey?"Retry safely":"Post "+kind}</button>{retryKey&&<span className="hint">Retry uses the same Idempotency-Key.</span>}</div>
  </form>}</main>
 }
