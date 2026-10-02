@@ -2,7 +2,8 @@ import {test,expect} from "@playwright/test";
 const tenant="11111111-1111-4111-8111-111111111111";
 const email="admin@demo.nomos.local";
 
-test("demo operator can sign in and navigate critical ERP workspaces",async({page})=>{\n const failed:string[]=[];page.on("response",r=>{if(r.url().includes("/api/")&&r.status()>=400)failed.push(r.status()+" "+r.url())});
+test("demo operator can sign in and navigate critical ERP workspaces",async({page})=>{
+ const failed:string[]=[];page.on("response",r=>{if(r.url().includes("/api/")&&r.status()>=400)failed.push(r.status()+" "+r.url())});
  await page.goto("/login");
  await expect(page.getByRole("heading",{name:"Operations workspace"})).toBeVisible();
  await expect(page.getByLabel("Tenant ID")).toHaveValue(tenant);
