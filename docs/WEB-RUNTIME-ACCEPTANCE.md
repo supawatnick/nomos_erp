@@ -48,3 +48,26 @@ Web acceptance MUST fail unless all are true:
 - Automate critical Inventory, Procurement, Sales, Finance, Approvals and Reports flows.
 - Re-run against deployed Host 73 origin.
 - Only then may this document return to PASS.
+
+
+## Remediation evidence — 2026-10-02
+A mandatory NOMOS-owned runtime suite now exists at `apps/web/tests/runtime.test.mjs`; `npm test` explicitly targets `tests/*.test.mjs`, so absence of project tests can no longer silently pass.
+
+The new gate immediately found defects that prior acceptance missed:
+- Finance workspace called `GET /api/v1/finance/periods` although only POST existed: **405**.
+- After adding finance read APIs, the journal query referenced non-existent `finance_journals` instead of schema table `journal_entries`: **500**.
+- Invoice/payment UI read models assumed stored `open_amount`/`unallocated_amount`; the schema stores settled/allocated amounts, so read endpoints now derive the open values.
+These were corrected before accepting the gate.
+
+Deployed-origin run against **http://10.10.110.73**:
+- critical ERP route rendering: PASS;
+- `/health` + `/ready`: PASS;
+- demo login + session context: PASS;
+- authenticated reads for master data, Inventory, Procurement PR/RFQ/PO, Sales quotation/order, Finance accounts/periods/journals/invoices/payments, Approvals and Reports: PASS;
+- runtime suite: **3 passed, 0 failed, 0 skipped**;
+- Web lint: PASS;
+- Web typecheck: PASS;
+- production build command completed successfully in the same gate (build output intentionally redirected on Host 73).
+
+### Remaining limitation
+This runtime suite is an automated deployed-origin integration/smoke suite, not yet a full DOM-driving browser suite. It proves routing, login/session and critical authenticated API reads through the deployed origin. Destructive/financial posting browser workflows still require dedicated E2E coverage before Phase 15 can return to PASS.
