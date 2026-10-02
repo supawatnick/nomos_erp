@@ -11,6 +11,8 @@ from app.application.procurement import (
     approve_purchase_order,
     award_rfq,
     create_purchase_order,
+    post_goods_receipt,
+    post_purchase_return,
     create_purchase_request,
     create_rfq,
     record_supplier_quote,
@@ -198,3 +200,78 @@ def test_po_approval_requires_high_risk_permission(engine):
         with pytest.raises(Exception) as exc:
             approve_purchase_order(db, context=denied, order_id=order_id)
         assert getattr(exc.value, "status_code", None) == 403
+
+
+def _create_sent_po(db, context, tenant, entity, branch, unit, product, supplier, quantity=Decimal(10)):
+    _seed_sequence(db, tenant, "PO", "PO-R-", entity=entity, branch=branch)
+    order_id = create_purchase_order(db, context=context, legal_entity_id=entity, branch_id=branch,
+        supplier_id=supplier, period_key="2026",
+        lines=[{"product_id": product, "unit_id": unit, "quantity": quantity, "unit_price": Decimal(10)}])
+    submit_purchase_order(db, context=context, order_id=order_id)
+    approve_purchase_order(db, context=context, order_id=order_id)
+    send_purchase_order(db, context=context, order_id=order_id)
+    return order_id
+
+
+def test_partial_receipt_retry_full_receipt_and_return_reconcile(engine):
+    tenant, entity, branch, unit, product, location, *_ = seed(engine)
+    context = procurement_ctx(engine, tenant)
+    with engine.begin() as db:
+        supplier = create_partner(db, context=context, code="GR-"+uuid4().hex[:8],
+            name="Receipt Supplier", is_customer=False, is_supplier=True)
+        _seed_sequence(db, tenant, "GR", "GR-", entity=entity, branch=branch)
+        _seed_sequence(db, tenant, "PRT", "PRT-", entity=entity, branch=branch)
+        order_id = _create_sent_po(db, context, tenant, entity, branch, unit, product, supplier)
+        line_id = db.execute(text("""SELECT id FROM purchase_order_lines
+            WHERE tenant_id=:t AND purchase_order_id=:po"""), {"t": tenant, "po": order_id}).scalar_one()
+        first = post_goods_receipt(db, context=context, order_id=order_id, location_id=location,
+            idempotency_key="gr-partial", period_key="2026",
+            lines=[{"purchase_order_line_id": line_id, "quantity": Decimal(4)}])
+        replay = post_goods_receipt(db, context=context, order_id=order_id, location_id=location,
+            idempotency_key="gr-partial", period_key="2026",
+            lines=[{"purchase_order_line_id": line_id, "quantity": Decimal(4)}])
+        assert first == replay
+        assert db.execute(text("SELECT status FROM purchase_orders WHERE id=:id"), {"id": order_id}).scalar_one() == "PARTIALLY_RECEIVED"
+        post_goods_receipt(db, context=context, order_id=order_id, location_id=location,
+            idempotency_key="gr-final", period_key="2026",
+            lines=[{"purchase_order_line_id": line_id, "quantity": Decimal(6)}])
+        assert db.execute(text("SELECT status FROM purchase_orders WHERE id=:id"), {"id": order_id}).scalar_one() == "RECEIVED"
+        returned = post_purchase_return(db, context=context, order_id=order_id, location_id=location,
+            idempotency_key="return-1", period_key="2026",
+            lines=[{"purchase_order_line_id": line_id, "quantity": Decimal(3)}])
+        assert returned
+        progress = db.execute(text("""SELECT received_quantity,returned_quantity FROM purchase_order_lines
+            WHERE tenant_id=:t AND id=:id"""), {"t": tenant, "id": line_id}).mappings().one()
+        assert Decimal(progress["received_quantity"]) == Decimal(10)
+        assert Decimal(progress["returned_quantity"]) == Decimal(3)
+        assert Decimal(db.execute(text("""SELECT on_hand FROM inventory_balances
+            WHERE tenant_id=:t AND product_id=:p AND location_id=:l"""),
+            {"t": tenant, "p": product, "l": location}).scalar_one()) == Decimal(7)
+        assert db.execute(text("""SELECT count(*) FROM inventory_transactions
+            WHERE tenant_id=:t AND source_type='GOODS_RECEIPT'"""), {"t": tenant}).scalar_one() == 2
+        assert db.execute(text("""SELECT count(*) FROM inventory_transactions
+            WHERE tenant_id=:t AND source_type='PURCHASE_RETURN'"""), {"t": tenant}).scalar_one() == 1
+
+
+def test_receipt_cannot_exceed_order_and_return_cannot_exceed_received(engine):
+    tenant, entity, branch, unit, product, location, *_ = seed(engine)
+    context = procurement_ctx(engine, tenant)
+    with engine.begin() as db:
+        supplier = create_partner(db, context=context, code="CAP-"+uuid4().hex[:8],
+            name="Cap Supplier", is_customer=False, is_supplier=True)
+        _seed_sequence(db, tenant, "GR", "GR-C-", entity=entity, branch=branch)
+        _seed_sequence(db, tenant, "PRT", "PRT-C-", entity=entity, branch=branch)
+        order_id = _create_sent_po(db, context, tenant, entity, branch, unit, product, supplier, Decimal(5))
+        line_id = db.execute(text("SELECT id FROM purchase_order_lines WHERE purchase_order_id=:po"),
+                             {"po": order_id}).scalar_one()
+        with pytest.raises(ProcurementError, match="exceeds ordered"):
+            post_goods_receipt(db, context=context, order_id=order_id, location_id=location,
+                idempotency_key="too-many", period_key="2026",
+                lines=[{"purchase_order_line_id": line_id, "quantity": Decimal(6)}])
+        post_goods_receipt(db, context=context, order_id=order_id, location_id=location,
+            idempotency_key="valid", period_key="2026",
+            lines=[{"purchase_order_line_id": line_id, "quantity": Decimal(2)}])
+        with pytest.raises(ProcurementError, match="exceeds received"):
+            post_purchase_return(db, context=context, order_id=order_id, location_id=location,
+                idempotency_key="return-too-many", period_key="2026",
+                lines=[{"purchase_order_line_id": line_id, "quantity": Decimal(3)}])
