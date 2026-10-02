@@ -92,3 +92,18 @@ Final closure gate:
 ## Phase 5 exit
 Phase 5 is complete when the final documentation commit passes the full gate and host 73 is synchronized/clean.
 Next: Phase 6 Stock Count, Reorder and Operational Reports, completing the planned Internal ERP MVP.
+
+
+## Phase 0–7 remediation closure addendum
+The 2026-10-02 Phase 0–7 contract audit found that the original Phase 5 acceptance document required Users/Roles/Audit Web surfaces that were not present in the repository despite the phase being marked PASS.
+
+Closure implemented before Phase 8:
+- `/api/v1/admin/users` guarded by `user.read`;
+- `/api/v1/admin/roles` guarded by `role.read`;
+- `/api/v1/admin/audit` guarded by `audit.read`;
+- all queries are tenant scoped and derive tenant from the authenticated server context;
+- `/admin` provides Users, Roles/Permissions and Audit Trail surfaces;
+- the Web remains presentation-only for authorization; API permission checks are authoritative;
+- remediation Web acceptance verifies the required admin surface.
+
+The gap is tracked and closed by `docs/PHASE-0-7-REMEDIATION.md`.
