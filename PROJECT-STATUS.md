@@ -3,11 +3,11 @@
 > Operational handoff/source of truth. Read after AGENTS.md before every work session.
 
 ## Current stage
-Phase 11 Operational Reporting Closure
+Phase 12 Finance & Accounting Closure
 
-Overall status: **PHASE 11 PASS — READY FOR PHASE 12**
+Overall status: **PHASE 12 PASS — CORE ERP V1 GATE MET — READY FOR PHASE 13**
 
-Primary objective: begin Phase 12 Finance & Accounting from the clean Phase 11 baseline on host 73 only.
+Primary objective: begin Phase 13 LINE from the clean Phase 12 Core ERP V1 baseline on host 73 only.
 
 ## Completed
 
@@ -239,18 +239,35 @@ Primary objective: begin Phase 12 Finance & Accounting from the clean Phase 11 b
 - [x] Detailed review: docs/PHASE-11-REVIEW.md.
 - [x] Host runtime evidence refreshed: docs/HOST-73-RUNBOOK.md.
 
+## Phase 12 — Finance & Accounting
+- [x] Legal-entity-scoped Chart of Accounts and control accounts.
+- [x] Fiscal periods and closed-period posting rejection.
+- [x] Exact balanced immutable GL journals with source provenance and idempotency.
+- [x] Explicit journal reversal; no destructive posted-history edit.
+- [x] Customer/Supplier invoices and AR/AP subledger.
+- [x] Receipts/Payments and exact allocation-derived settlement states.
+- [x] Effective-dated tax and exchange-rate configuration foundations.
+- [x] Posting-rule configuration and standard-cost inventory valuation.
+- [x] Inventory POSTED transaction -> one balanced valuation journal.
+- [x] Trial balance and AR/AP-to-GL reconciliation foundation.
+- [x] Finance API + Web workspace; API 0.12.0.
+- [x] Phase 12 implementation CI 37011808602 PASS — 75 PostgreSQL/API tests plus full gate.
+- [x] Detailed review: docs/PHASE-12-REVIEW.md.
+- [x] Core ERP V1 four-core implementation gate met.
+
 ## Current blockers
-- No Phase 11 functional blocker remains.
+- No Phase 12 functional blocker remains.
+- Final Phase 12 documentation CI and host 73 runtime synchronization are the closure tasks before Phase 13.
 - Historical host 73 stashes remain preserved housekeeping only.
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Phase 12 contract read
-Read Finance/Accounting, accounting-boundary, authorization, document lifecycle and posting contracts from the verified Phase 11 baseline. Final Phase 11 documentation CI and host 73 clean synchronization are already complete.
+### NEXT 1 — Final Phase 12 closure
+Verify documentation CI, fast-forward host 73, install synchronized dependencies, Alembic upgrade through 0018, run full PostgreSQL/API suite, and confirm clean 0/0 Git divergence with stashes preserved.
 
-### NEXT 2 — Finance foundation
-Implement legal-entity-scoped Chart of Accounts, fiscal periods, journals/GL and balanced posting/reversal with idempotent source posting.
+### NEXT 2 — Phase 13 contract read
+Read LINE transport/identity/security contracts only after NEXT 1 is green.
 
-### NEXT 3 — AR/AP and cross-core accounting
-Implement customer/supplier invoices, receipts/payments, tax/exchange-rate foundations and Inventory/Procurement/Sales posting contracts with subledger-to-GL reconciliation.
+### NEXT 3 — LINE implementation
+Implement tenant LINE configuration, secure account linking, signed/deduplicated webhook and confirmation-based ERP operations over the same application services and permissions.
 
