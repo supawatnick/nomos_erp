@@ -3,11 +3,11 @@
 > Operational handoff/source of truth. Read after AGENTS.md before every work session.
 
 ## Current stage
-Phase 4 — Inventory Engine
+Phase 5 — Inventory Web ERP
 
-Overall status: **PHASE 4 PASS — READY FOR PHASE 5**
+Overall status: **PHASE 5 PASS — READY FOR PHASE 6**
 
-Primary objective: begin Phase 5 Inventory Web ERP on host 73 only, consuming the completed Phase 4 inventory application/API contracts without duplicating stock rules in UI.
+Primary objective: begin Phase 6 Stock Count, Reorder and Operational Reports on host 73 only, completing the planned Internal ERP MVP while preserving the four-core ERP contracts.
 
 ## Completed
 
@@ -58,6 +58,30 @@ Primary objective: begin Phase 5 Inventory Web ERP on host 73 only, consuming th
 - [x] Inventory API for posting, reversal, movement history, balances and reconciliation.
 - [x] Concurrent issue/no-oversell acceptance.
 - [x] Phase 4 review — docs/PHASE-4-REVIEW.md.
+
+### Phase 5 — Inventory Web ERP
+- [x] Inventory operational dashboard.
+- [x] Stock-on-hand view with product/warehouse/location labels.
+- [x] Immutable movement-history view.
+- [x] Receive workflow.
+- [x] Issue workflow.
+- [x] Transfer workflow.
+- [x] Adjustment workflow with explicit direction.
+- [x] Phase 4 API-only posting; no direct Web balance mutation.
+- [x] Idempotency-Key generation and same-key safe retry.
+- [x] Loading/empty/login/permission/insufficient-stock/conflict/network/success states.
+- [x] Authenticated Authorization + X-Tenant-ID context.
+- [x] Web acceptance coverage for routes, headers, posting, error and retry behavior.
+- [x] Phase 5 review — docs/PHASE-5-REVIEW.md.
+
+## Phase 5 acceptance evidence
+- Host 73 Web lint: PASS before documentation closure.
+- API Ruff/mypy/Alembic/PostgreSQL pytest: PASS on Phase 5 implementation gate.
+- pip-audit: PASS.
+- npm ci/audit high: PASS.
+- Web lint/typecheck/tests/production build: PASS on Phase 5 implementation gate.
+- gitleaks: PASS.
+- Final documentation commit CI and host73 clean-state verification are required for terminal Phase 5 closure.
 
 ## Phase 4 acceptance evidence
 - API Ruff: PASS.
@@ -126,18 +150,18 @@ Primary objective: begin Phase 5 Inventory Web ERP on host 73 only, consuming th
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Phase 5 inventory Web shell
-Build dashboard/stock/movement operational navigation and permission-aware inventory surfaces using existing Web design contract.
+### NEXT 1 — Phase 6 stock count
+Implement stock-count documents, count lines, variance calculation and controlled adjustment posting through the Phase 4 engine.
 
-### NEXT 2 — Phase 5 posting workflows
-Build Receive, Issue, Transfer and Adjustment forms that call Phase 4 APIs with Idempotency-Key and explicit error/retry states.
+### NEXT 2 — Phase 6 reorder
+Implement reorder policy/threshold data and actionable replenishment views without bypassing Procurement boundaries.
 
-### NEXT 3 — Phase 5 operational acceptance
-Add Web tests/E2E for balances, movement history, posting, insufficient stock, replay-safe retry and permission-denied states.
+### NEXT 3 — Phase 6 operational reports / Internal ERP MVP gate
+Implement inventory operational reports and complete Internal ERP MVP acceptance, documentation and CI closure.
 
 ## Latest activity
 - Phase 3 Catalog and Warehouse implementation completed.
 - Phase 3 PostgreSQL/API/Web/security regression gate PASS in GitHub Actions run 36974731001.
 - Phase 3 review recorded in docs/PHASE-3-REVIEW.md.
 - Four-core ERP plan/framework/skills revision and Phase 0–3 alignment patch completed without invalidating Phase 0–3 acceptance.
-- Phase 4 Inventory Engine implemented with concurrency/idempotency/reconciliation acceptance and cross-core source contracts.\n- Immediate next executable action is Phase 5 Inventory Web ERP on host 73.
+- Phase 4 Inventory Engine implemented with concurrency/idempotency/reconciliation acceptance and cross-core source contracts.\n- Phase 5 Inventory Web ERP implemented with operational stock/movement views and idempotent posting workflows.\n- Immediate next executable action is Phase 6 Stock Count, Reorder and Operational Reports on host 73.
