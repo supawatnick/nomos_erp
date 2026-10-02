@@ -21,11 +21,17 @@ def trial_balance(db: Connection, *, context: RequestContext, legal_entity_id: U
 def reconcile_subledgers(db: Connection, *, context: RequestContext, legal_entity_id: UUID,
                          ar_control_account_id: UUID, ap_control_account_id: UUID) -> dict[str, Decimal]:
     require_permission(context,"accounting.read")
-    ar=Decimal(db.execute(text("""SELECT COALESCE(sum(total_amount-settled_amount),0) FROM finance_invoices
+    ar=Decimal(db.execute(text("""SELECT COALESCE(sum(total_amount),0) FROM finance_invoices
       WHERE tenant_id=:t AND legal_entity_id=:e AND invoice_type='CUSTOMER' AND status NOT IN ('VOID','CREDITED')"""),
       {"t":context.tenant_id,"e":legal_entity_id}).scalar_one())
-    ap=Decimal(db.execute(text("""SELECT COALESCE(sum(total_amount-settled_amount),0) FROM finance_invoices
+    ar-=Decimal(db.execute(text("""SELECT COALESCE(sum(amount),0) FROM finance_payments
+      WHERE tenant_id=:t AND legal_entity_id=:e AND payment_type='RECEIPT' AND status<>'REVERSED'"""),
+      {"t":context.tenant_id,"e":legal_entity_id}).scalar_one())
+    ap=Decimal(db.execute(text("""SELECT COALESCE(sum(total_amount),0) FROM finance_invoices
       WHERE tenant_id=:t AND legal_entity_id=:e AND invoice_type='SUPPLIER' AND status NOT IN ('VOID','DEBITED')"""),
+      {"t":context.tenant_id,"e":legal_entity_id}).scalar_one())
+    ap-=Decimal(db.execute(text("""SELECT COALESCE(sum(amount),0) FROM finance_payments
+      WHERE tenant_id=:t AND legal_entity_id=:e AND payment_type='PAYMENT' AND status<>'REVERSED'"""),
       {"t":context.tenant_id,"e":legal_entity_id}).scalar_one())
     def gl(account:UUID)->Decimal:
         return Decimal(db.execute(text("""SELECT COALESCE(sum(l.base_debit-l.base_credit),0)
