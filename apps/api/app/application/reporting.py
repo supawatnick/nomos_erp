@@ -24,7 +24,7 @@ REPORT_COLUMNS: dict[str, list[str]] = {
                            "ordered_quantity", "received_quantity", "returned_quantity", "updated_at"],
     "sales-orders": ["order_number", "customer_name", "status", "currency_code", "order_total",
                      "ordered_quantity", "reserved_quantity", "delivered_quantity", "returned_quantity", "updated_at"],
-    "crm-pipeline": ["stage", "opportunity_count", "pipeline_amount"],
+    "crm-pipeline": ["status", "opportunity_count", "pipeline_amount"],
     "management-summary": ["metric", "value"],
 }
 
@@ -73,15 +73,15 @@ def run_report(
           WHERE so.tenant_id=:tenant AND so.updated_at>=:start AND so.updated_at<:end
           GROUP BY so.id,bp.name ORDER BY so.updated_at DESC,so.id LIMIT :limit"""
     elif report == "crm-pipeline":
-        sql = """SELECT stage,count(*) opportunity_count,COALESCE(sum(amount),0) pipeline_amount
+        sql = """SELECT status,count(*) opportunity_count,COALESCE(sum(estimated_amount),0) pipeline_amount
           FROM crm_opportunities WHERE tenant_id=:tenant AND updated_at>=:start AND updated_at<:end
-          GROUP BY stage ORDER BY stage LIMIT :limit"""
+          GROUP BY status ORDER BY status LIMIT :limit"""
     elif report == "management-summary":
         sql = """SELECT metric,value FROM (
           SELECT 1 n,'stock_positions' metric,count(*)::numeric value FROM inventory_balances WHERE tenant_id=:tenant AND on_hand<>0
           UNION ALL SELECT 2,'open_purchase_orders',count(*)::numeric FROM purchase_orders WHERE tenant_id=:tenant AND status NOT IN ('CLOSED','CANCELLED','RECEIVED')
           UNION ALL SELECT 3,'open_sales_orders',count(*)::numeric FROM sales_orders WHERE tenant_id=:tenant AND status NOT IN ('CLOSED','CANCELLED')
-          UNION ALL SELECT 4,'open_opportunities',count(*)::numeric FROM crm_opportunities WHERE tenant_id=:tenant AND stage NOT IN ('WON','LOST')
+          UNION ALL SELECT 4,'open_opportunities',count(*)::numeric FROM crm_opportunities WHERE tenant_id=:tenant AND status NOT IN ('WON','LOST','CANCELLED')
           UNION ALL SELECT 5,'pending_approvals',count(*)::numeric FROM approval_requests WHERE tenant_id=:tenant AND status='PENDING'
         ) x ORDER BY n LIMIT :limit"""
     else:
