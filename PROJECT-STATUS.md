@@ -3,11 +3,11 @@
 > Operational handoff/source of truth. Read after AGENTS.md before every work session.
 
 ## Current stage
-Phase 6 — Inventory Operations / Internal ERP MVP
+Phase 7 — Business Partners & CRM Foundation
 
-Overall status: **PHASE 6 PASS — INTERNAL INVENTORY ERP MVP COMPLETE — READY FOR PHASE 7**
+Overall status: **PHASE 7 PASS — READY FOR PHASE 8**
 
-Primary objective: begin Phase 7 Business Partners & CRM Foundation on host 73 only while preserving the completed Internal Inventory ERP MVP and four-core boundaries.
+Primary objective: begin Phase 8 Procurement & Purchasing on host 73 only, consuming shared supplier/partner identity and Inventory contracts without direct stock mutation.
 
 ## Completed
 
@@ -88,6 +88,34 @@ Primary objective: begin Phase 7 Business Partners & CRM Foundation on host 73 o
 - [x] PostgreSQL and Web acceptance coverage.
 - [x] Phase 6 review — docs/PHASE-6-REVIEW.md.
 - [x] Internal Inventory ERP MVP scope (Phases 0–6) complete.
+
+### Phase 7 — Business Partners & CRM Foundation
+- [x] Shared tenant-scoped Business Partner identity.
+- [x] Customer-only, supplier-only and dual customer+supplier roles.
+- [x] Partner contacts and addresses.
+- [x] CRM leads and explicit lifecycle.
+- [x] CRM opportunities with exact amount/currency.
+- [x] Activities/notes and tenant-user ownership.
+- [x] Partner/CRM permissions, tenant isolation and audit.
+- [x] No premature QT/SO/PR/RFQ/PO coupling.
+- [x] Business Partners and CRM Web surfaces.
+- [x] PostgreSQL and Web acceptance.
+- [x] Phase 7 review — docs/PHASE-7-REVIEW.md.
+
+## Phase 7 acceptance evidence
+- Ruff: PASS.
+- mypy: PASS.
+- Alembic upgrade through 0007_phase7_crm: PASS.
+- PostgreSQL pytest suite: PASS.
+- Partner dual-role/contact/address acceptance: PASS.
+- Cross-tenant partner child rejection: PASS.
+- Lead/opportunity/activity acceptance: PASS.
+- Phase 7 commercial-document boundary acceptance: PASS.
+- pip-audit: PASS.
+- npm ci/audit high: PASS.
+- Web lint/typecheck/tests/build: PASS.
+- gitleaks: PASS.
+- Final documentation commit CI and host73 synchronization required for terminal closure.
 
 ## Phase 6 acceptance evidence
 - API Ruff: PASS.
@@ -180,18 +208,18 @@ Primary objective: begin Phase 7 Business Partners & CRM Foundation on host 73 o
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Phase 7 partner identity
-Implement tenant-scoped business partner identity with customer/supplier roles, contacts and addresses.
+### NEXT 1 — Phase 8 procurement documents
+Implement PR and RFQ/supplier quotation comparison using Phase 7 supplier identities.
 
-### NEXT 2 — Phase 7 CRM foundation
-Implement leads/opportunities, activities/notes and ownership without coupling to future Sales Orders.
+### NEXT 2 — Phase 8 purchase orders and receipts
+Implement PO lifecycle, partial Goods Receipt/Return orchestration through Phase 4 Inventory contracts.
 
-### NEXT 3 — Phase 7 acceptance
-Verify customer+supplier dual role, tenant isolation, audit, Web workflows and CRM history before Phase 8 Procurement.
+### NEXT 3 — Phase 8 reconciliation
+Verify procurement status, remaining quantities, idempotent receipt/return, tenant isolation, audit and Web workflows.
 
 ## Latest activity
 - Phase 3 Catalog and Warehouse implementation completed.
 - Phase 3 PostgreSQL/API/Web/security regression gate PASS in GitHub Actions run 36974731001.
 - Phase 3 review recorded in docs/PHASE-3-REVIEW.md.
 - Four-core ERP plan/framework/skills revision and Phase 0–3 alignment patch completed without invalidating Phase 0–3 acceptance.
-- Phase 4 Inventory Engine implemented with concurrency/idempotency/reconciliation acceptance and cross-core source contracts.\n- Phase 5 Inventory Web ERP implemented with operational stock/movement views and idempotent posting workflows.\n- Phase 6 Inventory Operations completed; Internal Inventory ERP MVP (Phases 0–6) is complete.\n- Immediate next executable action is Phase 7 Business Partners & CRM Foundation on host 73.
+- Phase 4 Inventory Engine implemented with concurrency/idempotency/reconciliation acceptance and cross-core source contracts.\n- Phase 5 Inventory Web ERP implemented with operational stock/movement views and idempotent posting workflows.\n- Phase 6 Inventory Operations completed; Internal Inventory ERP MVP (Phases 0–6) is complete.\n- Phase 7 Business Partners & CRM Foundation completed.\n- Immediate next executable action is Phase 8 Procurement & Purchasing on host 73.
