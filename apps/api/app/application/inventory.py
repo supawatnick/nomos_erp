@@ -102,13 +102,13 @@ def _validate_line(connection: Connection, tenant_id: UUID, legal_entity_id: UUI
     """), {"tenant":tenant_id,"product":line.product_id,"unit":line.unit_id,"location":line.location_id}).mappings().first()
     if not row or row["product_status"]!="ACTIVE" or row["product_type"]=="SERVICE" or row["location_status"]!="ACTIVE" or not row["allow_stock"] or row["warehouse_status"]!="ACTIVE" or row["legal_entity_id"]!=legal_entity_id:
         raise InventoryError("invalid active stock product/location/organization")
-    if line.quantity.as_tuple().exponent < -int(row["precision"]):
+    if _scale(line.quantity) > int(row["precision"]):
         raise InventoryError("quantity exceeds unit precision")
     factor = Decimal(1) if line.unit_id == row["base_unit_id"] else row["factor_to_base"]
     if factor is None:
         raise InventoryError("unit is not configured for product")
     base = line.quantity * Decimal(factor)
-    if base.as_tuple().exponent < -8:
+    if _scale(base) > 8:
         raise InventoryError("base quantity exceeds precision")
     if destination:
         dest = connection.execute(text("""
@@ -130,7 +130,7 @@ def _lock_balances(connection: Connection, tenant_id: UUID, keys: list[tuple[UUI
         """), {"tenant":tenant_id,"product":product,"location":location,"now":datetime.now(UTC)})
     result: dict[tuple[UUID,UUID],Decimal] = {}
     for product, location in unique:
-        value = connection.execute(text("""
+        value: Any = connection.execute(text("""
             SELECT on_hand FROM inventory_balances
             WHERE tenant_id=:tenant AND product_id=:product AND location_id=:location FOR UPDATE
         """), {"tenant":tenant_id,"product":product,"location":location}).scalar_one()
