@@ -266,6 +266,14 @@ Apply approval controls to purchasing, sales discount/credit exceptions, invento
 - [x] Migration chain 0001 through 0012 present and current.
 - [x] Stale escaped-newline and Phase 4 pending-gate status text reconciled.
 
+## Clean-baseline remediation — 2026-10-02
+- [x] Replaced deprecated Starlette/httpx test-client dependency with supported httpx2 2.13.1; API PostgreSQL suite now reports 61 passed with no pytest warning summary.
+- [x] Fixed Phase 2 fixture teardown to avoid rollback-on-closed-transaction SQLAlchemy warnings.
+- [x] Fixed Procurement and Sales React hook dependency warnings using stable useCallback loaders.
+- [x] Web lint now completes with no application lint warnings.
+- [x] ESLint remains on the Next-compatible 9.x peer range; upstream npm deprecation metadata is non-actionable until eslint-config-next dependencies support ESLint 10. npm audit reports 0 vulnerabilities.
+- [x] Clean-baseline CI 37001928091 PASS: Ruff, mypy, migrations, 61 PostgreSQL tests, dependency audits, Web lint/typecheck/tests/build and Gitleaks.
+
 ## Latest activity
 - Phase 9 Sales & CRM implementation complete.
 - Implementation acceptance GitHub Actions run 36998921435 PASS.
