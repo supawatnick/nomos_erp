@@ -145,7 +145,7 @@ def _lock_balances(connection: Connection, tenant_id: UUID, keys: list[tuple[UUI
     return result
 
 
-def post_inventory(
+def _post_inventory_core(
     connection: Connection, *, context: RequestContext, transaction_type: str,
     legal_entity_id: UUID, branch_id: UUID | None, lines: list[StockLine],
     idempotency_key: str, reference: str | None = None, reason: str | None = None,
@@ -154,7 +154,6 @@ def post_inventory(
     kind = transaction_type.upper()
     if kind not in {"RECEIVE","ISSUE","TRANSFER","ADJUST","OPENING"} or not lines:
         raise InventoryError("invalid inventory command")
-    require_permission(context, PERMISSION[kind])
     fp = _fingerprint(kind, legal_entity_id, branch_id, lines, reference, reason, source_type, source_id, source_number)
     replay = _claim(connection, context.tenant_id, idempotency_key, fp)
     if replay:
@@ -221,6 +220,39 @@ def post_inventory(
     """), {"resource":tx_id,"body":json.dumps({"id":str(tx_id)}),"now":now,"tenant":context.tenant_id,"key":idempotency_key})
     return tx_id
 
+
+
+def post_inventory(
+    connection: Connection, *, context: RequestContext, transaction_type: str,
+    legal_entity_id: UUID, branch_id: UUID | None, lines: list[StockLine],
+    idempotency_key: str, reference: str | None = None, reason: str | None = None,
+    source_type: str | None = None, source_id: UUID | None = None, source_number: str | None = None,
+) -> UUID:
+    kind = transaction_type.upper()
+    if kind not in PERMISSION:
+        raise InventoryError("invalid inventory command")
+    require_permission(context, PERMISSION[kind])
+    return _post_inventory_core(
+        connection, context=context, transaction_type=kind, legal_entity_id=legal_entity_id,
+        branch_id=branch_id, lines=lines, idempotency_key=idempotency_key, reference=reference,
+        reason=reason, source_type=source_type, source_id=source_id, source_number=source_number,
+    )
+
+
+def post_procurement_inventory(
+    connection: Connection, *, context: RequestContext, transaction_type: str,
+    legal_entity_id: UUID, branch_id: UUID | None, lines: list[StockLine],
+    idempotency_key: str, source_type: str, source_id: UUID, source_number: str,
+) -> UUID:
+    require_permission(context, "procurement.receive")
+    kind = transaction_type.upper()
+    if kind not in {"RECEIVE", "ISSUE"}:
+        raise InventoryError("procurement inventory supports RECEIVE or ISSUE only")
+    return _post_inventory_core(
+        connection, context=context, transaction_type=kind, legal_entity_id=legal_entity_id,
+        branch_id=branch_id, lines=lines, idempotency_key=idempotency_key,
+        source_type=source_type, source_id=source_id, source_number=source_number,
+    )
 
 def reverse_inventory(connection: Connection, *, context: RequestContext, transaction_id: UUID, idempotency_key: str, reason: str) -> UUID:
     require_permission(context, "inventory.adjust")
