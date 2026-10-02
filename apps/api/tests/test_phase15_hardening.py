@@ -3,7 +3,7 @@ from time import perf_counter
 
 import pytest
 from sqlalchemy import create_engine
-from test_phase4_inventory import StockLine, post_inventory, seed
+from test_phase4_inventory import StockLine, ctx, post, seed
 from test_phase12_finance import setup_finance
 
 from app.application.hardening import reconciliation_snapshot
@@ -40,16 +40,16 @@ def test_reconciliation_read_smoke_p95_under_pilot_target(engine):
 
 
 def test_concurrent_inventory_never_oversells(engine):
-    tenant,entity,product,unit,_,source=seed(engine)
-    with engine.begin() as db:
-        location=db.exec_driver_sql("SELECT id FROM locations WHERE tenant_id=%s LIMIT 1",(tenant,)).scalar_one()
-    post_inventory(engine,tenant,entity,"RECEIVE",[StockLine(product,unit,location,None,"5")],source,"phase15-load-seed")
+    tenant,entity,branch,unit,product,location,*_=seed(engine)
+    context=ctx(tenant)
+    post(engine,context,entity,branch,"RECEIVE",StockLine(product,unit,location,None,"5"),"phase15-load-seed")
     def issue(key):
         try:
-            return post_inventory(engine,tenant,entity,"ISSUE",[StockLine(product,unit,location,None,"4")],source,key)
+            return post(engine,context,entity,branch,"ISSUE",StockLine(product,unit,location,None,"4"),key)
         except ValueError:
             return None
-    with ThreadPoolExecutor(max_workers=2) as pool: results=list(pool.map(issue,["phase15-c1","phase15-c2"]))
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results=list(pool.map(issue,["phase15-c1","phase15-c2"]))
     assert sum(x is not None for x in results)==1
 
 
