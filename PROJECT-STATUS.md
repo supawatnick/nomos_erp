@@ -56,7 +56,7 @@ Operational note: nested SSH Git commands from the control host may sometimes be
 ## In progress / not yet passed
 Phase 0 is NOT complete. The following contracts still require completion and review:
 
-- [ ] Detailed ERD: columns, keys, constraints and relationships for Phase 1–6 tables.
+- [x] Detailed ERD: columns, keys, constraints and relationships for Phase 1–6 tables — `docs/ERD-PHASE-1-6.md`.
 - [ ] Permission matrix: actor/role examples mapped to permissions and high-risk actions.
 - [ ] Inventory state machine and exact posting/reversal rules.
 - [ ] Inventory concurrency/locking/idempotency contract.
@@ -69,44 +69,39 @@ Phase 0 is NOT complete. The following contracts still require completion and re
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Detailed ERD
-Create a detailed Phase 1–6 ERD/spec covering:
-1. tenants / settings
-2. legal_entities / branches
-3. users / memberships / roles / permissions / sessions
-4. products / categories / units / conversions / barcodes
-5. warehouses / locations
-6. inventory transaction header/lines
-7. balance projection
-8. stock count / reorder rules
-9. audit / idempotency / outbox
-10. document sequences / imports / attachments
+### NEXT 1 — Inventory execution contract
+Specify the exact inventory state machine and posting behavior:
+1. allowed transaction states/transitions
+2. receive/issue/transfer/adjust/opening/reversal posting algorithms
+3. deterministic balance-row lock order
+4. safe creation of missing balance rows
+5. negative-stock validation
+6. transfer atomicity
+7. idempotency replay/conflict behavior
+8. reversal eligibility/linkage
+9. ledger-to-balance reconciliation algorithm
+10. required concurrency/negative tests
 
-For every table define tenant ownership, PK/FK, unique constraints, indexes, exact decimal/time types, archive/delete policy and cross-tenant integrity strategy.
+Exit: concurrency and posting integration tests can be written directly from the contract.
 
-Exit: schema can be translated into initial migrations without unresolved ownership or inventory-integrity questions.
 
-### NEXT 2 — Inventory execution contract
-Specify state transitions, posting algorithm, deterministic row-lock order, negative-stock rule, transfer atomicity, idempotency replay/conflict behavior, reversal linkage and reconciliation algorithm.
 
-Exit: concurrency tests can be written directly from the contract.
-
-### NEXT 3 — Authorization matrix
+### NEXT 2 — Authorization matrix
 Define baseline roles only as examples, map every Phase 1–6 operation to explicit permissions, identify stronger-permission actions and future approval hooks.
 
 Exit: API authorization tests can be generated from the matrix.
 
-### NEXT 4 — API and audit contracts
+### NEXT 3 — API and audit contracts
 Finalize request context, pagination/filtering, mutation/idempotency headers, error mapping and audit-event taxonomy.
 
 Exit: FastAPI skeleton has stable conventions before feature routers are added.
 
-### NEXT 5 — Phase 0 architecture review
+### NEXT 4 — Phase 0 architecture review
 Cross-check all docs for contradictions, missing tenant scope, stock side effects, lifecycle conflicts and future Purchasing/Sales/Accounting compatibility.
 
 Exit: Phase 0 marked PASS.
 
-### NEXT 6 — Start Phase 1 on host 73 only
+### NEXT 5 — Start Phase 1 on host 73 only
 After Phase 0 PASS:
 - sync repository on 73
 - inspect installed runtime/tooling on 73
@@ -117,7 +112,7 @@ After Phase 0 PASS:
 - health/readiness
 - prove clean boot from documented commands
 
-Do NOT begin NEXT 6 before Phase 0 exit gate passes.
+Do NOT begin NEXT 5 before Phase 0 exit gate passes.
 
 ## Session handoff procedure
 Before starting NOMOS work:
@@ -135,6 +130,10 @@ Before ending meaningful work:
 6. Record the latest meaningful result below.
 
 ## Latest activity
+- NEXT 1 Detailed ERD completed and PASS: `docs/ERD-PHASE-1-6.md`.
+- Locked database safeguards: composite same-tenant foreign keys, exact numeric/time conventions, append-oriented ledger/audit, balance projection key, idempotency/outbox persistence, concurrency-safe sequence persistence and traceable imports.
+- No new architecture blocker found.
+- Immediate next action: Inventory execution/concurrency contract.
 - Phase 0 architecture documentation set created and registered in `AGENTS.md`.
 - Current Phase 0 status remains IN PROGRESS.
 - Immediate next action: detailed Phase 1–6 ERD/schema contract.
