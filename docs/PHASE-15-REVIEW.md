@@ -1,6 +1,6 @@
 # Phase 15 Review — Commercial Hardening
 
-Status: **CODE/HARDENING PASS — DEPLOYMENT/BROWSER ACCEPTANCE OPEN**
+Status: **PASS — CODE/HARDENING + DEPLOYMENT/BROWSER ACCEPTANCE VERIFIED**
 
 ## Sequencing
 Phase 13 LINE remains **DEFERRED / NOT PASS** by product decision. Phase 15 does not claim Integrated Channel ERP V1 and does not depend on LINE.
@@ -77,4 +77,4 @@ The gate is reopened until all are proven:
 - login and representative ERP pages are exercised against the deployed runtime;
 - runtime URL/configuration is recorded in HOST-73-RUNBOOK.md.
 
-Do not claim controlled commercial pilot readiness until this section is closed with runtime evidence.
+Deployment correction gate is now closed by docs/WEB-RUNTIME-ACCEPTANCE.md. Verified private-network entry URL: **http://10.10.110.73/**. Web/API services are restartable, same-origin routing is active, health/readiness pass through the browser entry point, and representative ERP routes return HTTP 200.
