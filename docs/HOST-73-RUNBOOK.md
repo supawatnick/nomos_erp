@@ -104,3 +104,24 @@ After any later documentation/code commit, fast-forward host 73 again before imp
 If SSH fails: use `10.10.110.73` rather than bare `73`; confirm TCP/22 and host key; use `/root/.ssh/ntap_office_demo_ed25519` with `IdentitiesOnly=yes`; verify hostname `nomos-erp`; enter `/root/nomos_erp`; inspect Git status/remote/stashes before mutation.
 
 Do not guess the host, repo path, key, or Git state.
+
+
+## Current Web/API runtime — verified 2026-10-02
+
+Private-network browser entry URL: **http://10.10.110.73/**
+
+Runtime topology:
+- Caddy: host-network container, port 80, restart unless-stopped.
+- Next.js Web: nomos-web.service, enabled/active, production build on port 3000.
+- FastAPI: nomos-api.service, enabled/active, canonical listener 127.0.0.1:8020.
+- Caddy proxies /api/*, /health and /ready to FastAPI and all other routes to Next.js.
+- Browser uses same-origin API calls; no separate CORS URL is required.
+
+Acceptance evidence:
+- / and /login: HTTP 200.
+- /health: status ok.
+- /ready: status ready.
+- /inventory, /procurement, /sales, /finance, /reports and /settings/subscription: HTTP 200.
+- Source of truth for the gate: docs/WEB-RUNTIME-ACCEPTANCE.md.
+
+Legacy manually started localhost API listeners observed on 8000/8010 are not the canonical deployed API service. New operational procedures must target nomos-api.service on 8020.
