@@ -3,87 +3,98 @@
 > Operational handoff/source of truth. Read after AGENTS.md before every work session.
 
 ## Current stage
-Phase 2 — SaaS Platform Core
+Phase 3 — Catalog and Warehouse
 
-Overall status: **PHASE 2 PASS — READY FOR PHASE 3**
+Overall status: **PHASE 3 PASS — READY FOR PHASE 4**
 
-Primary objective: begin Phase 3 Catalog and Warehouse on host 73 only while preserving Phase 0–2 security and tenant-isolation contracts.
+Primary objective: begin Phase 4 Inventory Engine on host 73 only while preserving Phase 0–3 tenant, security, catalog and organization invariants.
 
 ## Completed
 
 ### Phase 0 — Specification and Architecture
-- [x] Phase 0 architecture review PASS — docs/PHASE-0-REVIEW.md.
-- [x] Domain, ERD, organization, authorization, inventory execution, API/audit, import/opening stock, operations, acceptance and Web Design contracts locked.
+- [x] Architecture/domain/ERD/authorization/inventory/API/Web contracts locked.
 
 ### Phase 1 — Engineering Foundation
-- [x] Web/API/worker skeletons, PostgreSQL 17, Alembic, configuration validation, request logging, health/readiness and CI foundation.
-- [x] Phase 1 acceptance and GitHub Actions gates PASS.
+- [x] Next.js Web, FastAPI API, worker, PostgreSQL 17, Alembic, configuration, logging, health/readiness and CI foundation.
+- [x] Phase 1 acceptance PASS.
 
 ### Phase 2 — SaaS Platform Core
-- [x] Tenant, tenant settings, legal entity and branch persistence.
-- [x] Global users plus tenant membership persistence.
-- [x] Tenant-scoped roles, global permissions, role-permission and membership-role persistence.
-- [x] Session persistence with hashed tokens, active membership/user enforcement and revocation.
-- [x] PBKDF2-SHA256 password hashing primitives.
-- [x] Server-derived trusted tenant context and effective permission resolution.
-- [x] Deny-by-default permission enforcement and RBAC allow/deny matrix.
-- [x] Same-tenant composite FK strategy for tenant-owned organization/RBAC references.
-- [x] Idempotency persistence with same-fingerprint replay vs conflicting-fingerprint semantics.
-- [x] Append-oriented audit and transactional outbox foundations.
-- [x] Tenant-scoped legal-entity repository prevents cross-tenant read/update/archive guessed-ID access.
-- [x] Authorized organization mutation writes correlated audit and outbox rows in the same transaction.
-- [x] Auth transport surface: /api/v1/auth/login, /api/v1/auth/logout and /api/v1/auth/context.
-- [x] Server owns canonical X-Request-ID; X-Correlation-ID is logging/correlation input only.
-- [x] Phase 2 review documented in docs/PHASE-2-REVIEW.md.
+- [x] Tenant/organization/user/membership/session/RBAC persistence.
+- [x] Server-derived tenant context and deny-by-default permissions.
+- [x] Audit, idempotency and transactional outbox foundations.
+- [x] Tenant-isolation/RBAC acceptance PASS.
+- [x] Phase 2 review — docs/PHASE-2-REVIEW.md.
 
-## Phase 2 acceptance evidence
+### Phase 3 — Catalog and Warehouse
+- [x] Categories with same-tenant hierarchy and archive lifecycle.
+- [x] Units with precision constraints.
+- [x] Products with tenant-unique SKU, product type, tracking type, category/base-unit ownership and archive lifecycle.
+- [x] Product-unit exact NUMERIC(24,8) conversions and positive-factor validation.
+- [x] Tenant-unique barcodes with optional product-unit binding.
+- [x] Warehouses with DB-enforced tenant/legal-entity/branch consistency.
+- [x] Locations with same-warehouse parent FK and application cycle validation.
+- [x] Document sequences with NULLS NOT DISTINCT scope uniqueness and FOR UPDATE allocation.
+- [x] Phase 3 product.read/product.manage/warehouse.read/warehouse.manage permission seeds.
+- [x] Tenant-scoped master-data API for Products, Categories, Units, Warehouses and Locations.
+- [x] Product conversion and barcode API.
+- [x] Product list search/status filter/allowlisted sort/opaque cursor pagination.
+- [x] Web sign-in + Master Data navigation/pages for Products, Categories, Units, Warehouses and Locations.
+- [x] Product Web search/filter/sort/pagination and loading/empty/error states.
+- [x] Web Phase 3 regression tests.
+- [x] Phase 3 review — docs/PHASE-3-REVIEW.md.
+
+## Phase 3 acceptance evidence
 - API Ruff: PASS.
 - API mypy strict: PASS.
-- PostgreSQL Alembic upgrade through 0003_phase2_completion: PASS.
-- Unit + PostgreSQL integration suite: PASS in CI.
-- Cross-tenant composite reference rejection: PASS.
-- Cross-tenant read/update/archive isolation: PASS.
-- Disabled membership and revoked-session rejection: PASS.
-- RBAC permission matrix: PASS.
-- Idempotency replay/conflict gate: PASS.
-- Critical administration audit + outbox correlation: PASS.
+- PostgreSQL Alembic upgrade through 0004_phase3_catalog_warehouse: PASS.
+- Unit + PostgreSQL integration suite: PASS.
+- Duplicate SKU/barcode constraints: PASS.
+- Cross-tenant catalog isolation: PASS.
+- Exact conversion validation: PASS.
+- Warehouse branch/legal-entity mismatch rejection at DB boundary: PASS.
+- Cross-warehouse location parent rejection and hierarchy cycle rejection: PASS.
+- Document sequence allocation/increment: PASS.
+- Stable product ID/archive semantics: PASS.
 - Python dependency audit: PASS.
-- Web npm install/audit/lint/typecheck/test/build regression gates: PASS.
+- Web lint/typecheck: PASS.
+- Web tests: PASS — 2 Phase 3 tests.
+- Web production build: PASS — routes /login, /products, /categories, /units, /warehouses, /locations.
+- npm dependency audit: PASS.
 - gitleaks: PASS.
-- GitHub Actions code gate: PASS — run 36972680322 on commit f50fa9fccffdf3320d69fd881a2cdadd1f2a9b17.
+- GitHub Actions code gate: PASS — run 36974731001 on commit 2900c66a657ca4c4662d4ca18804349d3390bd39.
 
 ## Decisions passed / locked
-- Security/tenant isolation remains highest priority.
-- Tenant identity is resolved from authenticated active membership, never trusted from business request payloads.
-- Authorization checks permission codes, not role names, and denies by default.
-- Default branch remains UX-only context and grants no authorization.
-- Cross-tenant guessed IDs must not reveal foreign object existence.
-- Session tokens are never stored raw.
-- Critical committed administration mutations create correlated append-oriented audit records and transactional outbox rows.
-- Host 72 remains control/orchestration only; NOMOS development/runtime/build/test/database execution remains on host 73.
-- PostgreSQL remains authoritative and modular monolith remains the initial architecture.
+- Security and tenant isolation remain highest priority.
+- Product master remains tenant-scoped across legal entities in Phase 1–6.
+- Unit conversion factors use exact decimal semantics.
+- Warehouse branch/legal-entity consistency is a database invariant.
+- Location hierarchy cannot cross warehouse boundaries; cycles are rejected.
+- Master data uses archive semantics and stable UUIDs for import safety.
+- Human document numbering uses transactional sequence allocation and is separate from database IDs.
+- Stock-bearing warehouse/location archive enforcement becomes active with Phase 4 inventory state; Phase 3 has no stock ledger/balance state.
+- Host 72 remains control/orchestration only; NOMOS runtime/build/test/database execution remains on host 73.
 
 ## Current blockers
-- None for Phase 3.
-- Platform safety gates may occasionally require a permitted single-command SSH pattern; this is an execution-tool constraint, not a NOMOS architecture blocker.
+- None for Phase 4.
+- Platform safety gates may require permitted single-command SSH patterns; this is an execution-tool constraint, not an architecture blocker.
 
 ## In progress / not yet passed
-- Phase 3 Catalog and Warehouse has not started.
+- Phase 4 Inventory Engine has not started.
 - Two preserved pre-sync stashes remain on host 73 from conflicting local scaffold work; do not drop them until reviewed.
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Phase 3 catalog persistence
-Implement categories, units, products, product units and barcodes with tenant-scoped composite FKs, exact conversion factors, archive lifecycle and duplicate constraints.
+### NEXT 1 — Phase 4 inventory persistence
+Implement inventory transactions/lines/balances and required constraints/indexes using the approved ledger contract.
 
-### NEXT 2 — Phase 3 warehouse/location persistence
-Implement warehouses and locations with legal-entity/branch consistency, same-warehouse parent constraints, archive rules and document sequence persistence.
+### NEXT 2 — Phase 4 posting engine
+Implement receive/issue/transfer/adjust/reversal/opening through one application posting layer with aggregate-before-lock, deterministic locks, no-negative-stock and immutable POSTED history.
 
-### NEXT 3 — Phase 3 APIs/Web + acceptance
-Implement tenant-scoped list/search/filter/sort/pagination APIs and Web master-data flows, then run archive/duplicate/isolation tests and the Phase 3 acceptance gate.
+### NEXT 3 — Phase 4 concurrency/reconciliation acceptance
+Implement idempotency replay/conflict/concurrent-key tests, concurrent issue/no-oversell, atomic transfer, reversal linkage, ledger-to-balance reconciliation and correlated audit/outbox gates.
 
 ## Latest activity
-- Phase 2 SaaS Platform Core implemented and acceptance suite green.
-- Final Phase 2 code verification PASS in GitHub Actions run 36972680322.
-- Phase 2 implementation/review contract recorded in docs/PHASE-2-REVIEW.md.
-- Immediate next executable action: Phase 3 catalog persistence on host 73.
+- Phase 3 Catalog and Warehouse implementation completed.
+- Phase 3 PostgreSQL/API/Web/security regression gate PASS in GitHub Actions run 36974731001.
+- Phase 3 review recorded in docs/PHASE-3-REVIEW.md.
+- Immediate next executable action: Phase 4 inventory persistence on host 73.
