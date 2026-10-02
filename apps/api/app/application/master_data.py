@@ -107,6 +107,24 @@ def archive_master(
         raise ValueError("unsupported archive resource")
     table, permission, action = config[resource]
     require_permission(context, permission)
+    if resource == "location":
+        has_stock = connection.execute(
+            text("SELECT EXISTS(SELECT 1 FROM inventory_balances WHERE tenant_id=:tenant AND location_id=:id AND on_hand<>0)"),
+            {"tenant": context.tenant_id, "id": resource_id},
+        ).scalar_one()
+        if has_stock:
+            raise ValueError("stock-bearing location cannot be archived")
+    if resource == "warehouse":
+        has_stock = connection.execute(
+            text("""SELECT EXISTS(
+                SELECT 1 FROM inventory_balances b
+                JOIN warehouse_locations l ON l.tenant_id=b.tenant_id AND l.id=b.location_id
+                WHERE b.tenant_id=:tenant AND l.warehouse_id=:id AND b.on_hand<>0
+            )"""),
+            {"tenant": context.tenant_id, "id": resource_id},
+        ).scalar_one()
+        if has_stock:
+            raise ValueError("stock-bearing warehouse cannot be archived")
     queries = {
         "categories": "UPDATE categories SET status='ARCHIVED',archived_at=:now,updated_at=:now WHERE tenant_id=:tenant AND id=:id AND status<>'ARCHIVED'",
         "warehouses": "UPDATE warehouses SET status='ARCHIVED',archived_at=:now,updated_at=:now WHERE tenant_id=:tenant AND id=:id AND status<>'ARCHIVED'",
