@@ -104,7 +104,7 @@ def _validate_line(connection: Connection, tenant_id: UUID, legal_entity_id: UUI
         raise InventoryError("invalid active stock product/location/organization")
     if line.quantity.as_tuple().exponent < -int(row["precision"]):
         raise InventoryError("quantity exceeds unit precision")
-    factor = Decimal("1") if line.unit_id == row["base_unit_id"] else row["factor_to_base"]
+    factor = Decimal(1) if line.unit_id == row["base_unit_id"] else row["factor_to_base"]
     if factor is None:
         raise InventoryError("unit is not configured for product")
     base = line.quantity * Decimal(factor)
@@ -173,7 +173,7 @@ def post_inventory(
     deltas: dict[tuple[UUID,UUID],Decimal] = {}
     for line, location, base, direction in effects:
         key=(line.product_id,location)
-        deltas[key]=deltas.get(key,Decimal("0")) + base*direction
+        deltas[key]=deltas.get(key,Decimal(0)) + base*direction
     balances = _lock_balances(connection, context.tenant_id, list(deltas))
     for key, delta in deltas.items():
         if balances[key]+delta < 0:
@@ -236,7 +236,7 @@ def reverse_inventory(connection: Connection, *, context: RequestContext, transa
     deltas: dict[tuple[UUID,UUID],Decimal]={}
     for row in rows:
         key=(row["product_id"],row["location_id"])
-        deltas[key]=deltas.get(key,Decimal("0")) - Decimal(row["base_quantity"])*int(row["direction"])
+        deltas[key]=deltas.get(key,Decimal(0)) - Decimal(row["base_quantity"])*int(row["direction"])
     balances=_lock_balances(connection,context.tenant_id,list(deltas))
     for key,delta in deltas.items():
         if balances[key]+delta<0:
