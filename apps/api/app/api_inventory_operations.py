@@ -155,7 +155,7 @@ def reorder(request:Request,authorization:str|None=Header(default=None),
         d=dict(x)
         for key in ("id","product_id","location_id"):d[key]=str(d[key])
         for key in ("reorder_point","target_quantity","on_hand","suggested_quantity"):d[key]=format(d[key],"f")
-        d["needs_reorder"]=Decimal(d["on_hand"])<=Decimal(d["reorder_point"]);data.append(d)
+        d["needs_reorder"]=Decimal(str(d["on_hand"]))<=Decimal(str(d["reorder_point"]));data.append(d)
     return {"data":data,"meta":{"request_id":str(context.request_id),"procurement_document_created":False}}
 
 
