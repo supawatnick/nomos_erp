@@ -58,7 +58,7 @@ def post_inventory_valuation(db: Connection, *, context: RequestContext, invento
     if amount<=0: raise FinanceError("inventory valuation amount is zero or cost missing")
     journal=post_journal(db,context=context,legal_entity_id=tx["legal_entity_id"],posting_date=posting_date,
       currency_code="THB",description=f"Inventory valuation {tx['source_number']}",source_module="INVENTORY",
-      source_type="INVENTORY_"+tx["transaction_type"],source_id=inventory_transaction_id,source_number=tx["transaction_number"],
+      source_type="INVENTORY_"+tx["transaction_type"],source_id=inventory_transaction_id,source_number=tx["source_number"],
       source_effect="VALUATION",idempotency_key=idempotency_key,period_key=period_key,
       lines=[{"account_id":rule["debit_account_id"],"debit":amount},{"account_id":rule["credit_account_id"],"credit":amount}])
     db.execute(text("""INSERT INTO inventory_valuation_entries
