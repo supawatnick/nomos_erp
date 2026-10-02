@@ -150,3 +150,33 @@ def test_expiry_cancel_and_cross_tenant_isolation(engine):
         cancel_approval(db, context=requester, approval_request_id=pending)
         assert db.execute(text("SELECT status FROM approval_requests WHERE id=:id"),
                           {"id": pending}).scalar_one() == "CANCELLED"
+
+
+def test_ordered_steps_require_step_specific_permission(engine):
+    tenant, *_ = seed(engine)
+    admin = approval_ctx(engine, tenant, {"approval.policy.manage"}, "step-admin")
+    requester = approval_ctx(engine, tenant, {"approval.request"}, "step-requester")
+    first = approval_ctx(engine, tenant, {"approval.decide", "purchase_order.manage"}, "step-one")
+    second = approval_ctx(engine, tenant, {"approval.decide", "purchase_order.approve"}, "step-two")
+    with engine.begin() as db:
+        create_policy(db, context=admin, code="PO-2STEP", name="Two-step PO",
+            request_type="PURCHASE_ORDER", required_permission="purchase_order.approve",
+            steps=[
+                {"name": "Buyer review", "required_permission": "purchase_order.manage"},
+                {"name": "Final approval", "required_permission": "purchase_order.approve"},
+            ])
+        approval_id = request_approval(db, context=requester, policy_code="PO-2STEP",
+            source_type="PURCHASE_ORDER", source_id=uuid4(), source_version=7,
+            snapshot={"version": 7, "total": "999.00"})
+        decide_approval(db, context=first, approval_request_id=approval_id,
+            decision="APPROVED", idempotency_key="step-1")
+        row = db.execute(text("SELECT status,current_step FROM approval_requests WHERE id=:id"),
+                         {"id": approval_id}).mappings().one()
+        assert row["status"] == "PENDING" and row["current_step"] == 2
+        with pytest.raises(HTTPException):
+            decide_approval(db, context=first, approval_request_id=approval_id,
+                decision="APPROVED", idempotency_key="wrong-step")
+        decide_approval(db, context=second, approval_request_id=approval_id,
+            decision="APPROVED", idempotency_key="step-2")
+        assert db.execute(text("SELECT status FROM approval_requests WHERE id=:id"),
+                          {"id": approval_id}).scalar_one() == "APPROVED"
