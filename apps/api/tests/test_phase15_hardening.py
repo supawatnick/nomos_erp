@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from decimal import Decimal
 from time import perf_counter
 
 import pytest
@@ -42,10 +43,10 @@ def test_reconciliation_read_smoke_p95_under_pilot_target(engine):
 def test_concurrent_inventory_never_oversells(engine):
     tenant,entity,branch,unit,product,location,*_=seed(engine)
     context=ctx(tenant)
-    post(engine,context,entity,branch,"RECEIVE",StockLine(product,unit,location,None,"5"),"phase15-load-seed")
+    post(engine,context,entity,branch,"RECEIVE",StockLine(product,unit,location,Decimal("5")),"phase15-load-seed")
     def issue(key):
         try:
-            return post(engine,context,entity,branch,"ISSUE",StockLine(product,unit,location,None,"4"),key)
+            return post(engine,context,entity,branch,"ISSUE",StockLine(product,unit,location,Decimal("4")),key)
         except ValueError:
             return None
     with ThreadPoolExecutor(max_workers=2) as pool:
