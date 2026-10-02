@@ -1,0 +1,9 @@
+# Gitleaks configuration for NOMOS ERP.
+# Extend the default rules; keep exceptions narrow and reviewable.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Historical documentation prose false positive; no credential or token."
+commits = ["bf22854eb51ca142bd2d61e3ce4556c9e72ab057"]
+paths = ["PROJECT-STATUS.md"]
