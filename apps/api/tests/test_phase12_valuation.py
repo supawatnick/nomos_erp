@@ -3,11 +3,15 @@ from decimal import Decimal
 
 import pytest
 from sqlalchemy import create_engine, text
+from test_phase4_inventory import StockLine, post_inventory
 from test_phase12_finance import setup_finance
-from test_phase4_inventory import StockLine, post_inventory, seed
 
 from app.application.finance import create_account
-from app.application.finance_integration import configure_posting_rule, post_inventory_valuation, set_standard_cost
+from app.application.finance_integration import (
+    configure_posting_rule,
+    post_inventory_valuation,
+    set_standard_cost,
+)
 from app.core.config import get_settings
 
 
@@ -21,7 +25,7 @@ def engine():
 
 
 def test_inventory_standard_cost_posts_once_and_reconciles(engine):
-    tenant,entity,cash,_,base=setup_finance(engine)
+    tenant,entity,_,_,base=setup_finance(engine)
     with engine.begin() as db:
         product,unit,location=db.execute(text("""SELECT p.id,p.base_unit_id,l.id FROM products p
           JOIN warehouse_locations l ON l.tenant_id=p.tenant_id JOIN warehouses w ON w.tenant_id=l.tenant_id AND w.id=l.warehouse_id
