@@ -51,8 +51,17 @@ class RFQIn(BaseModel):
     response_due_date: date | None = None
 
 
+class QuoteLineIn(BaseModel):
+    rfq_line_id: UUID
+    offered_quantity: Decimal = Field(gt=0)
+    unit_price: Decimal = Field(ge=0)
+    discount_amount: Decimal = Field(default=Decimal(0), ge=0)
+    tax_amount: Decimal = Field(default=Decimal(0), ge=0)
+
+
 class QuoteIn(BaseModel):
-    quoted_total: Decimal = Field(ge=0)
+    quoted_total: Decimal | None = Field(default=None, ge=0)
+    lines: list[QuoteLineIn] | None = None
     note: str | None = None
 
 
@@ -163,10 +172,26 @@ def quote_record(rfq_id: UUID, supplier_id: UUID, payload: QuoteIn, request: Req
     try:
         with _engine().begin() as db:
             record_supplier_quote(db, context=context, rfq_id=rfq_id, supplier_id=supplier_id,
-                                  quoted_total=payload.quoted_total, note=payload.note)
+                                  quoted_total=payload.quoted_total, note=payload.note,
+                                  lines=[line.model_dump() for line in payload.lines] if payload.lines is not None else None)
     except ProcurementError as exc:
         raise HTTPException(409, detail={"code": "INVALID_DOCUMENT_STATE", "message": str(exc)}) from exc
     return {"data": {"rfq_id": str(rfq_id), "supplier_id": str(supplier_id), "status": "RESPONDED"}}
+
+
+@router.get("/rfqs/{rfq_id}/comparison")
+def rfq_comparison(rfq_id: UUID, request: Request, authorization: str | None = Header(default=None),
+                   x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
+    context = _ctx(request, authorization, x_tenant_id)
+    require_permission(context, "procurement.read")
+    with _engine().connect() as db:
+        rows = db.execute(text("""SELECT s.supplier_id,s.status,s.quoted_total,l.rfq_line_id,
+            l.offered_quantity,l.unit_price,l.discount_amount,l.tax_amount,l.line_total
+            FROM procurement_rfq_suppliers s LEFT JOIN procurement_rfq_supplier_lines l
+              ON l.tenant_id=s.tenant_id AND l.rfq_supplier_id=s.id
+            WHERE s.tenant_id=:t AND s.rfq_id=:rfq ORDER BY s.supplier_id,l.rfq_line_id"""),
+            {"t": context.tenant_id, "rfq": rfq_id}).mappings().all()
+    return {"data": _serialize(rows), "meta": {"request_id": str(context.request_id)}}
 
 
 @router.post("/rfqs/{rfq_id}/award/{supplier_id}")
