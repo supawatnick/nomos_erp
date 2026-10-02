@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import {useEffect,useState} from "react";
+import {useCallback,useEffect,useState} from "react";
 import {apiError,authHeaders,newIdempotencyKey} from "../inventory/client";
 
 type Order={id:string;order_number:string;supplier_id:string;currency_code:string;status:string;version:number};
@@ -11,8 +11,8 @@ export default function Procurement(){
  const [selected,setSelected]=useState(""),[location,setLocation]=useState(""),[line,setLine]=useState(""),[qty,setQty]=useState("");
  const [error,setError]=useState(""),[message,setMessage]=useState("");
  const base=process.env.NEXT_PUBLIC_API_URL??"";
- async function load(){const h=authHeaders();if(!h){setError("กรุณาเข้าสู่ระบบ");return}const r=await fetch(base+"/api/v1/procurement/orders",{headers:h});if(!r.ok){setError(await apiError(r));return}setOrders((await r.json()).data)}
- useEffect(()=>{queueMicrotask(load)},[]);
+ const load=useCallback(async ()=>{const h=authHeaders();if(!h){setError("กรุณาเข้าสู่ระบบ");return}const r=await fetch(base+"/api/v1/procurement/orders",{headers:h});if(!r.ok){setError(await apiError(r));return}setOrders((await r.json()).data)},[base]);
+ useEffect(()=>{queueMicrotask(load)},[load]);
  async function choose(id:string){setSelected(id);setError("");const h=authHeaders();if(!h)return;const r=await fetch(base+`/api/v1/procurement/orders/${id}/lines`,{headers:h});if(!r.ok){setError(await apiError(r));return}setLines((await r.json()).data)}
  async function postMovement(kind:"receipts"|"returns"){setError("");setMessage("");const h=authHeaders();if(!h||!selected||!line)return;const r=await fetch(base+`/api/v1/procurement/orders/${selected}/${kind}`,{method:"POST",headers:{...h,"Content-Type":"application/json","Idempotency-Key":newIdempotencyKey(kind)},body:JSON.stringify({location_id:location,lines:[{purchase_order_line_id:line,quantity:qty}]})});if(!r.ok){setError(await apiError(r));return}setMessage(kind==="receipts"?"Goods Receipt posted":"Purchase Return posted");await load();await choose(selected)}
  return <main className="erp-main"><p className="eyebrow">NOMOS ERP · PROCUREMENT</p><h1>Procurement & Purchasing</h1><p>Purchase Orders, partial receiving and supplier returns. Posted stock effects are committed by Inventory before procurement status advances.</p>
