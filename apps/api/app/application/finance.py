@@ -8,7 +8,7 @@ from app.application.numbering import allocate_document_number
 from app.domain.security import RequestContext, require_permission
 from app.infrastructure.platform import write_audit, write_outbox
 
-ZERO = Decimal("0")
+ZERO = Decimal(0)
 
 
 class FinanceError(ValueError):
