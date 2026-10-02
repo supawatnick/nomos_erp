@@ -38,18 +38,21 @@ def setup_finance(engine):
     tenant,*_=seed(engine)
     with engine.begin() as db:
         entity=db.execute(text("SELECT id FROM legal_entities WHERE tenant_id=:t LIMIT 1"),{"t":tenant}).scalar_one()
-        context=fctx(tenant,{"accounting.configure","journal.post","journal.reverse","fiscal_period.close","fiscal_period.reopen"})
+        base=ctx(tenant)
+        db.execute(text("INSERT INTO users (id,email,password_hash,display_name,status,created_at,updated_at) VALUES (:u,:email,'x','Finance','ACTIVE',now(),now())"),{"u":base.actor_user_id,"email":base.actor_user_id.hex+'@test.local'})
+        db.execute(text("INSERT INTO tenant_users (id,tenant_id,user_id,status,joined_at,created_at,updated_at) VALUES (:tu,:t,:u,'ACTIVE',now(),now(),now())"),{"tu":base.tenant_user_id,"t":tenant,"u":base.actor_user_id})
+        context=type(base)(request_id=base.request_id,actor_user_id=base.actor_user_id,tenant_id=tenant,tenant_user_id=base.tenant_user_id,permissions=frozenset({"accounting.configure","journal.post","journal.reverse","fiscal_period.close","fiscal_period.reopen"}))
         cash=create_account(db,context=context,legal_entity_id=entity,code="1000",name="Cash",account_type="ASSET")
         revenue=create_account(db,context=context,legal_entity_id=entity,code="4000",name="Revenue",account_type="REVENUE")
         create_fiscal_period(db,context=context,legal_entity_id=entity,period_key="2026-10",start_date=date(2026,10,1),end_date=date(2026,10,31))
         db.execute(text("""INSERT INTO document_sequences
           (id,tenant_id,document_type,legal_entity_id,branch_id,period_key,prefix,next_value,padding,updated_at)
           VALUES (gen_random_uuid(),:t,'JV',:e,NULL,'2026-10','JV-202610-',1,6,now())"""),{"t":tenant,"e":entity})
-    return tenant,entity,cash,revenue
+    return tenant,entity,cash,revenue,context
 
 
 def test_balanced_post_idempotency_and_reversal(engine):
-    tenant,entity,cash,revenue=setup_finance(engine);context=fctx(tenant,{"journal.post","journal.reverse"})
+    tenant,entity,cash,revenue,base=setup_finance(engine);context=type(base)(request_id=base.request_id,actor_user_id=base.actor_user_id,tenant_id=tenant,tenant_user_id=base.tenant_user_id,permissions=frozenset({"journal.post","journal.reverse"}))
     source=uuid4()
     with engine.begin() as db:
         journal=post_journal(db,context=context,legal_entity_id=entity,posting_date=date(2026,10,2),
@@ -70,7 +73,7 @@ def test_balanced_post_idempotency_and_reversal(engine):
 
 
 def test_unbalanced_closed_period_and_cross_entity_account_are_denied(engine):
-    tenant,entity,cash,revenue=setup_finance(engine);context=fctx(tenant,{"journal.post","fiscal_period.close"})
+    tenant,entity,cash,revenue,base=setup_finance(engine);context=type(base)(request_id=base.request_id,actor_user_id=base.actor_user_id,tenant_id=tenant,tenant_user_id=base.tenant_user_id,permissions=frozenset({"journal.post","fiscal_period.close"}))
     with engine.begin() as db:
         with pytest.raises(UnbalancedJournal):
             post_journal(db,context=context,legal_entity_id=entity,posting_date=date(2026,10,2),currency_code="THB",
@@ -87,9 +90,10 @@ def test_unbalanced_closed_period_and_cross_entity_account_are_denied(engine):
 
 
 def test_missing_permission_denied(engine):
-    tenant,entity,cash,revenue=setup_finance(engine)
+    tenant,entity,cash,revenue,base=setup_finance(engine)
+    denied=type(base)(request_id=base.request_id,actor_user_id=base.actor_user_id,tenant_id=tenant,tenant_user_id=base.tenant_user_id,permissions=frozenset())
     with engine.begin() as db,pytest.raises(HTTPException):
-        post_journal(db,context=fctx(tenant,set()),legal_entity_id=entity,posting_date=date(2026,10,2),
+        post_journal(db,context=denied,legal_entity_id=entity,posting_date=date(2026,10,2),
           currency_code="THB",description="denied",source_module="MANUAL",source_type="JV",source_id=uuid4(),
           source_number=None,source_effect="PRIMARY",idempotency_key="denied",period_key="2026-10",
           lines=[{"account_id":cash,"debit":"1"},{"account_id":revenue,"credit":"1"}])
