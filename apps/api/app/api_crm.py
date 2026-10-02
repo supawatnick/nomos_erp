@@ -8,7 +8,16 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError
 
 from app.api_master import trusted_context
-from app.application.crm import CRMError, add_activity, add_address, add_contact, create_lead, create_opportunity, create_partner, transition_lead
+from app.application.crm import (
+    CRMError,
+    add_activity,
+    add_address,
+    add_contact,
+    create_lead,
+    create_opportunity,
+    create_partner,
+    transition_lead,
+)
 from app.core.config import get_settings
 from app.domain.security import require_permission
 
@@ -25,7 +34,7 @@ class LeadIn(BaseModel):
     lead_number:str;name:str;company_name:str|None=None;email:str|None=None;phone:str|None=None;owner_tenant_user_id:UUID|None=None;source:str|None=None
 class OpportunityIn(BaseModel):
     opportunity_number:str;name:str;lead_id:UUID|None=None;partner_id:UUID|None=None;owner_tenant_user_id:UUID|None=None
-    currency_code:str="THB";estimated_amount:Decimal=Decimal("0");expected_close_date:date|None=None
+    currency_code:str="THB";estimated_amount:Decimal=Decimal(0);expected_close_date:date|None=None
 class ActivityIn(BaseModel):
     activity_type:str;subject:str;note:str|None=None;partner_id:UUID|None=None;lead_id:UUID|None=None;opportunity_id:UUID|None=None;owner_tenant_user_id:UUID|None=None
 
