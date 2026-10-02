@@ -155,3 +155,27 @@ def test_archive_keeps_stable_product_id(db):
     assert CatalogRepository().archive_product(db, tenant_id, product_id)
     row = CatalogRepository().get_product(db, tenant_id, product_id)
     assert row is not None and row["id"] == product_id and row["status"] == "ARCHIVED"
+
+
+def test_product_unit_and_barcode_constraints(db):
+    now = datetime.now(UTC)
+    tenant_id = tenant(db, "conversion")
+    unit_id = unit(db, tenant_id)
+    product_id, product_unit_id = uuid4(), uuid4()
+    db.execute(
+        text("INSERT INTO products (id,tenant_id,sku,name,product_type,base_unit_id,tracking_type,status,created_at,updated_at) VALUES (:id,:tenant,'PACK','Pack','STOCKABLE',:unit,'NONE','ACTIVE',:now,:now)"),
+        {"id": product_id, "tenant": tenant_id, "unit": unit_id, "now": now},
+    )
+    db.execute(
+        text("INSERT INTO product_units (id,tenant_id,product_id,unit_id,factor_to_base,created_at,updated_at) VALUES (:id,:tenant,:product,:unit,12.00000000,:now,:now)"),
+        {"id": product_unit_id, "tenant": tenant_id, "product": product_id, "unit": unit_id, "now": now},
+    )
+    db.execute(
+        text("INSERT INTO product_barcodes (id,tenant_id,product_id,product_unit_id,barcode,created_at) VALUES (:id,:tenant,:product,:product_unit,'885000000001',:now)"),
+        {"id": uuid4(), "tenant": tenant_id, "product": product_id, "product_unit": product_unit_id, "now": now},
+    )
+    with pytest.raises(IntegrityError), db.begin_nested():
+        db.execute(
+            text("INSERT INTO product_barcodes (id,tenant_id,product_id,barcode,created_at) VALUES (:id,:tenant,:product,'885000000001',:now)"),
+            {"id": uuid4(), "tenant": tenant_id, "product": product_id, "now": now},
+        )
