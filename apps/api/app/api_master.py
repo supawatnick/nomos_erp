@@ -102,6 +102,7 @@ def products(
     resource_status: str | None = Query(default=None, alias="status"),
     limit: int = Query(default=50, ge=1, le=200),
     cursor: str | None = None,
+    sort: str = Query(default="id", pattern="^(id|sku|name|updated_at)$"),
 ) -> dict[str, object]:
     context = trusted_context(request, authorization, x_tenant_id)
     require_permission(context, "product.read")
@@ -109,7 +110,7 @@ def products(
     with engine.connect() as connection:
         rows = CatalogRepository().list_products(
             connection, context.tenant_id, search=search, status=resource_status,
-            limit=limit + 1, after=decode_cursor(cursor),
+            limit=limit + 1, after=decode_cursor(cursor), sort=sort,
         )
     has_more = len(rows) > limit
     data = rows[:limit]
