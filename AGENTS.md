@@ -28,6 +28,17 @@ When instructions conflict, use this order:
 13. Never expose secrets, arbitrary SQL, unrestricted file access or internal admin tools to LINE/AI.
 14. Never log credentials, tokens, secrets or unnecessary personal data.
 
+## Infrastructure control-plane rule
+
+- Host 72 is the NOMOS control/orchestration host only.
+- Do not install application runtimes, databases, project dependencies, build tools, Docker workloads, or NOMOS application services on host 72.
+- Do not use host 72 as a development, test, staging, or production execution target.
+- Host 72 may hold the ntap-office/MCP control plane and use it to instruct other hosts.
+- Workloads must execute on their designated target hosts. For the current NOMOS ERP test/development environment, host 73 is the execution target.
+- Git operations for a target host should be performed by that target host using its own credentials whenever possible; host 72 must not act as a Git credential proxy for host 73.
+- If a required capability is missing on a target host, install or configure it on the target host, not on host 72.
+- Any exception to this rule requires explicit user approval.
+
 ## Target architecture
 
 - Web: Next.js + TypeScript
