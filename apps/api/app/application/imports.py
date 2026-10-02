@@ -79,7 +79,9 @@ def _opening_row(connection: Connection, tenant: UUID, source: dict[str, Any]) -
         if not value: errors.append({"field":field,"code":"UNKNOWN_REFERENCE"})
     try:
         quantity=Decimal(str(source.get("quantity","")))
-        exponent=quantity.as_tuple().exponent\n        if quantity<=0 or not isinstance(exponent,int) or max(0,-exponent)>8: raise InvalidOperation
+        exponent=quantity.as_tuple().exponent
+        if quantity<=0 or not isinstance(exponent,int) or max(0,-exponent)>8:
+            raise InvalidOperation
     except (InvalidOperation,ValueError):
         quantity=Decimal(0);errors.append({"field":"quantity","code":"INVALID_DECIMAL"})
     return {"legal_entity_id":str(entity) if entity else None,"product_id":str(product) if product else None,
