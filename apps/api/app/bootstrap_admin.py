@@ -12,7 +12,7 @@ from app.core.config import get_settings
 from app.domain.security import hash_password
 
 
-def bootstrap_admin(*, email: str, password: str, tenant_slug: str, tenant_name: str) -> str:
+def bootstrap_admin(*, email: str, password: str, tenant_slug: str, tenant_name: str) -> tuple[str, str]:
     if len(password) < 12:
         raise ValueError("password must be at least 12 characters")
     engine = create_engine(get_settings().database_url, pool_pre_ping=True)
