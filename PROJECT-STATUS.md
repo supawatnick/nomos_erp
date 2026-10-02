@@ -233,7 +233,11 @@ Primary objective: begin Phase 12 Finance & Accounting from the clean Phase 11 b
 - [x] Operational Reports Web workspace.
 - [x] PostgreSQL reporting acceptance; 70 total tests at implementation gate.
 - [x] Phase 11 implementation CI 37007447637 PASS.
+- [x] Final Phase 11 documentation CI 37007719034 PASS.
+- [x] Host 73 final runtime sync: Alembic 0015 head, PostgreSQL/API 70 passed, clean tree, 0 ahead / 0 behind.
+- [x] Historical host 73 stashes preserved and untouched.
 - [x] Detailed review: docs/PHASE-11-REVIEW.md.
+- [x] Host runtime evidence refreshed: docs/HOST-73-RUNBOOK.md.
 
 ## Current blockers
 - No Phase 11 functional blocker remains.
@@ -242,7 +246,7 @@ Primary objective: begin Phase 12 Finance & Accounting from the clean Phase 11 b
 ## NEXT ACTIONS — execute in this order
 
 ### NEXT 1 — Phase 12 contract read
-Read Finance/Accounting, accounting-boundary, authorization, document lifecycle and posting contracts; verify final Phase 11 documentation CI and host 73 clean sync.
+Read Finance/Accounting, accounting-boundary, authorization, document lifecycle and posting contracts from the verified Phase 11 baseline. Final Phase 11 documentation CI and host 73 clean synchronization are already complete.
 
 ### NEXT 2 — Finance foundation
 Implement legal-entity-scoped Chart of Accounts, fiscal periods, journals/GL and balanced posting/reversal with idempotent source posting.
