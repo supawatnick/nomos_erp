@@ -3,11 +3,11 @@
 > Operational handoff/source of truth. Read after AGENTS.md before every work session.
 
 ## Current stage
-Phase 9 Sales & CRM Closure
+Phase 10 Approval & Commercial Controls Closure
 
-Overall status: **PHASE 9 PASS — READY FOR PHASE 10**
+Overall status: **PHASE 10 PASS — READY FOR PHASE 11**
 
-Primary objective: begin Phase 10 Approval & commercial controls from the clean Phase 9 baseline on host 73 only.
+Primary objective: begin Phase 11 Operational Reporting from the clean Phase 10 baseline on host 73 only.
 
 ## Completed
 
@@ -210,75 +210,31 @@ Primary objective: begin Phase 10 Approval & commercial controls from the clean 
 - [x] Documentation reconciliation CI 36986587027 PASS.
 - [x] Latest remediation permission-description migration CI 36986937445 PASS on c32a0e234cf31540e0c0275d25f93c90479b35ab.
 
-## Current blockers
-- No Phase 0–7 functional blocker remains for Phase 8.
-- Two preserved pre-sync stashes on host 73 remain an operational housekeeping item; do not drop them until reviewed.
-
-## Phase 8 — Procurement & Purchasing
-- [x] Purchase Request lifecycle with dedicated commands and server-side numbering.
-- [x] RFQ supplier invitation, line-level quotation comparison and award.
-- [x] Purchase Order lifecycle with approval fingerprint/version and server-side numbering.
-- [x] Goods Receipt with partial receipt and atomic Inventory RECEIVE orchestration.
-- [x] Purchase Return with cumulative received/returned validation and Inventory ISSUE orchestration.
-- [x] Procurement receipt/return idempotency and stock/order reconciliation.
-- [x] Procurement Web operations surface.
-- [x] Phase 8 review — docs/PHASE-8-REVIEW.md.
-- [x] Implementation acceptance CI 36996602994 PASS on 7ddc082348b14f4397559dca2cfed02f6f7f5235.
+## Phase 10 — Approval & Commercial Controls
+- [x] Tenant-scoped approval policy/request/decision persistence.
+- [x] Ordered policy steps with step-specific permissions.
+- [x] Immutable snapshot + source version/fingerprint binding.
+- [x] SoD/self-approval prohibition, expiry, cancel and tenant isolation.
+- [x] Idempotent decisions and explicit APPROVED vs EXECUTED states.
+- [x] Stale source version/fingerprint cannot execute.
+- [x] Purchasing controlled approval integration; approval never replaces module permission.
+- [x] Sales exception, inventory adjustment and future financial-control policy types supported by the shared engine.
+- [x] Approval API and Web inbox.
+- [x] Phase 10 implementation CI 37005603584 PASS.
+- [x] Detailed review: docs/PHASE-10-REVIEW.md.
 
 ## Current blockers
-- No Phase 8 functional blocker remains.
-- Preserved host 73 pre-sync stashes remain housekeeping only; do not apply/drop without review.
-
-## Phase 9 — Sales & CRM
-- [x] QT numbering, exact commercial lines, validity/expiry and revision snapshots.
-- [x] QT send/revise/accept with accepted revision evidence and QT -> SO traceability.
-- [x] Sales Order confirmation without physical stock mutation.
-- [x] Reservation/release with on-hand vs available semantics and row-lock concurrency boundary.
-- [x] Partial delivery through Inventory ISSUE and sales return through Inventory RECEIVE.
-- [x] Idempotent fulfillment and quantity/status reconciliation.
-- [x] Order status timeline.
-- [x] Sales Web operations surface.
-- [x] Phase 9 review — docs/PHASE-9-REVIEW.md.
-- [x] Implementation acceptance CI 36998921435 PASS on 65415e9369354c378f359cd40b5b07dc50283302.
-- [x] Final closure CI 37000090937 PASS on 9a5872695d492b8c669ddf47957cbeebe85d7bfe; full-history Gitleaks CLI scan PASS.
-
-## Current blockers
-- No Phase 9 functional blocker remains.
-- Preserved host 73 historical stashes remain housekeeping only; do not apply/drop without review.
+- No Phase 10 functional blocker remains.
+- Historical host 73 stashes remain preserved housekeeping only.
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Phase 10 contract read and clean-baseline verification
-Read approval/commercial-control contracts and verify host 73 is synced to final Phase 9 documentation commit with a clean working tree.
+### NEXT 1 — Phase 11 contract read
+Read reporting/export/query-protection contracts and verify the final Phase 10 documentation CI plus host 73 clean sync.
 
-### NEXT 2 — Approval policy and stale-state binding
-Implement approval policy/request/step/decision persistence with version/fingerprint revalidation and separation-of-duties boundaries.
+### NEXT 2 — Operational reporting
+Implement bounded inventory, procurement, sales/CRM and management reports with tenant-scoped filters and safe pagination.
 
-### NEXT 3 — Commercial controls integration
-Apply approval controls to purchasing, sales discount/credit exceptions, inventory adjustments and later Finance-ready controls without bypassing module permissions.
+### NEXT 3 — Export and protections
+Add CSV/XLSX export with bounded row/query limits; prove reports do not expose arbitrary SQL or destabilize OLTP.
 
-## Phase 0–8 repository re-audit — 2026-10-02
-- [x] Phase 0 architecture review PASS and Phase 0–7 remediation closure PASS.
-- [x] Phase 8 Procurement review PASS with CI 36996602994.
-- [x] Current main HEAD CI 37000290630 PASS with full-history Gitleaks scan.
-- [x] Host 73 main matches origin/main with 0/0 divergence and clean working tree; preserved stashes untouched.
-- [x] Host 73 PostgreSQL upgraded to Alembic 0012 head; full PostgreSQL suite 61 passed.
-- [x] Migration chain 0001 through 0012 present and current.
-- [x] Stale escaped-newline and Phase 4 pending-gate status text reconciled.
-
-## Clean-baseline remediation — 2026-10-02
-- [x] Replaced deprecated Starlette/httpx test-client dependency with supported httpx2 2.13.1; API PostgreSQL suite now reports 61 passed with no pytest warning summary.
-- [x] Fixed Phase 2 fixture teardown to avoid rollback-on-closed-transaction SQLAlchemy warnings.
-- [x] Fixed Procurement and Sales React hook dependency warnings using stable useCallback loaders.
-- [x] Web lint now completes with no application lint warnings.
-- [x] ESLint remains on the Next-compatible 9.x peer range; upstream npm deprecation metadata is non-actionable until eslint-config-next dependencies support ESLint 10. npm audit reports 0 vulnerabilities.
-- [x] Clean-baseline CI 37001928091 PASS: Ruff, mypy, migrations, 61 PostgreSQL tests, dependency audits, Web lint/typecheck/tests/build and Gitleaks.
-
-## Latest activity
-- Phase 9 Sales & CRM implementation complete.
-- Implementation acceptance GitHub Actions run 36998921435 PASS.
-- Final Phase 9 closure GitHub Actions run 37000090937 PASS, including full-history Gitleaks CLI scan.
-- QT revisions/expiry/acceptance and QT -> SO traceability completed.
-- Reservation available-stock semantics, release, partial delivery/return and Inventory integration completed.
-- Sales order timeline and Web operations surface completed.
-- Immediate next executable action is Phase 10 contract read after final Phase 9 documentation CI is green.
