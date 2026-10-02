@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from app.api_admin import router as admin_router
 from app.api_approvals import router as approvals_router
+from app.api_reports import router as reports_router
 from app.api_crm import router as crm_router
 from app.api_imports import router as imports_router
 from app.api_inventory import router as inventory_router
@@ -23,9 +24,10 @@ structlog.configure(
     processors=[structlog.processors.TimeStamper(fmt="iso"), structlog.processors.JSONRenderer()]
 )
 log = structlog.get_logger()
-app = FastAPI(title=settings.app_name, version="0.10.0")
+app = FastAPI(title=settings.app_name, version="0.11.0")
 app.include_router(admin_router)
 app.include_router(approvals_router)
+app.include_router(reports_router)
 app.include_router(master_router)
 app.include_router(imports_router)
 app.include_router(inventory_router)
