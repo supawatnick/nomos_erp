@@ -5,9 +5,9 @@
 ## Current stage
 Phase 0–7 Remediation Closure
 
-Overall status: **PHASE 0–7 REMEDIATION PASS — READY FOR PHASE 8 AFTER FINAL DOC CI**
+Overall status: **PHASE 0–7 REMEDIATION PASS — READY FOR PHASE 8**
 
-Primary objective: preserve the clean Phase 0–7 baseline, verify the final documentation CI, then begin Phase 8 Procurement & Purchasing on host 73 only.
+Primary objective: begin Phase 8 Procurement & Purchasing from the clean Phase 0–7 baseline on host 73 only, consuming Phase 7 supplier identity and Phase 4 Inventory contracts.
 
 ## Completed
 
@@ -198,7 +198,7 @@ Primary objective: preserve the clean Phase 0–7 baseline, verify the final doc
 - [x] Phase 0–3 alignment patch completed: data/ERD, document lifecycle, authorization namespaces, API/audit and numbering contracts now preserve the four-core design.
 - [x] Alignment review — docs/PHASE-0-3-ALIGNMENT.md.
 
-## Phase 0–7 remediation closure\n- [x] R-01 Users/Roles/Audit Web/API gap closed.\n- [x] R-02 PRODUCT/OPENING_STOCK import lifecycle gap closed.\n- [x] R-03 stale project/phase status reconciled.\n- [x] R-04 remediation Web surfaces checked against WEB-DESIGN-CONTRACT.\n- [x] Implementation acceptance CI 36986274423 PASS (47 PostgreSQL/API tests plus full Web/security/dependency gate).\n- [ ] Final documentation reconciliation CI must be green before Phase 8 implementation starts.\n\n## Current blockers\n- Phase 8 is blocked only until the final documentation reconciliation commit CI is green.\n- Two preserved pre-sync stashes on host 73 remain an operational housekeeping item; do not drop them until reviewed.
+## Phase 0–7 remediation closure\n- [x] R-01 Users/Roles/Audit Web/API gap closed.\n- [x] R-02 PRODUCT/OPENING_STOCK import lifecycle gap closed.\n- [x] R-03 stale project/phase status reconciled.\n- [x] R-04 remediation Web surfaces checked against WEB-DESIGN-CONTRACT.\n- [x] Implementation acceptance CI 36986274423 PASS (47 PostgreSQL/API tests plus full Web/security/dependency gate).\n- [x] Documentation reconciliation CI 36986587027 PASS.\n- [x] Latest remediation permission-description migration CI 36986937445 PASS on c32a0e234cf31540e0c0275d25f93c90479b35ab.\n\n## Current blockers\n- No Phase 0–7 functional blocker remains for Phase 8.\n- Two preserved pre-sync stashes on host 73 remain an operational housekeeping item; do not drop them until reviewed.
 
 ## NEXT ACTIONS — execute in this order
 
