@@ -1,0 +1,161 @@
+from datetime import UTC, date, datetime
+from decimal import Decimal
+from uuid import UUID, uuid4
+
+from sqlalchemy import Connection, text
+
+from app.domain.security import RequestContext, require_permission
+from app.infrastructure.platform import write_audit, write_outbox
+
+
+class ProcurementError(ValueError):
+    pass
+
+
+def _audit(db: Connection, ctx: RequestContext, action: str, target_type: str, target_id: UUID, metadata: dict | None = None) -> None:
+    write_audit(db, tenant_id=ctx.tenant_id, request_id=ctx.request_id, action=action,
+        actor_user_id=ctx.actor_user_id, actor_tenant_user_id=ctx.tenant_user_id,
+        target_type=target_type, target_id=target_id, metadata=metadata or {})
+
+
+def _product_unit_owned(db: Connection, tenant_id: UUID, product_id: UUID, unit_id: UUID) -> bool:
+    return db.execute(text("""SELECT 1 FROM products p JOIN units u ON u.tenant_id=p.tenant_id
+        WHERE p.tenant_id=:t AND p.id=:p AND u.id=:u AND p.status='ACTIVE' AND u.status='ACTIVE'
+        AND (p.base_unit_id=:u OR EXISTS (
+          SELECT 1 FROM product_units pu WHERE pu.tenant_id=:t AND pu.product_id=:p AND pu.unit_id=:u
+        ))"""), {"t": tenant_id, "p": product_id, "u": unit_id}).first() is not None
+
+
+def create_purchase_request(db: Connection, *, context: RequestContext, request_number: str,
+                            lines: list[dict], needed_by: date | None = None, reason: str | None = None) -> UUID:
+    require_permission(context, "purchase_request.manage")
+    if not lines:
+        raise ProcurementError("purchase request requires at least one line")
+    rid, now = uuid4(), datetime.now(UTC)
+    db.execute(text("""INSERT INTO purchase_requests
+      (id,tenant_id,request_number,status,requested_by_tenant_user_id,needed_by,reason,version,created_at,updated_at)
+      VALUES (:id,:t,:number,'DRAFT',:requester,:needed,:reason,1,:now,:now)"""),
+      {"id": rid, "t": context.tenant_id, "number": request_number, "requester": context.tenant_user_id,
+       "needed": needed_by, "reason": reason, "now": now})
+    for index, line in enumerate(lines, 1):
+        quantity = Decimal(str(line["quantity"]))
+        if quantity <= 0:
+            raise ProcurementError("quantity must be positive")
+        product_id, unit_id = UUID(str(line["product_id"])), UUID(str(line["unit_id"]))
+        if not _product_unit_owned(db, context.tenant_id, product_id, unit_id):
+            raise ProcurementError("product or unit not found")
+        db.execute(text("""INSERT INTO purchase_request_lines
+          (id,tenant_id,purchase_request_id,line_number,product_id,unit_id,quantity,note)
+          VALUES (:id,:t,:pr,:line,:product,:unit,:quantity,:note)"""),
+          {"id": uuid4(), "t": context.tenant_id, "pr": rid, "line": index, "product": product_id,
+           "unit": unit_id, "quantity": quantity, "note": line.get("note")})
+    _audit(db, context, "procurement.request.created", "purchase_request", rid, {"request_number": request_number})
+    write_outbox(db, tenant_id=context.tenant_id, event_type="procurement.request.created",
+                 aggregate_type="purchase_request", aggregate_id=rid, payload={"request_number": request_number})
+    return rid
+
+
+def transition_purchase_request(db: Connection, *, context: RequestContext, request_id: UUID, status: str) -> None:
+    require_permission(context, "purchase_request.manage")
+    allowed = {
+        "DRAFT": {"PENDING_APPROVAL", "CANCELLED"},
+        "PENDING_APPROVAL": {"APPROVED", "REJECTED", "CANCELLED"},
+        "APPROVED": {"SOURCING", "CANCELLED"},
+        "SOURCING": {"CONVERTED", "CANCELLED"},
+    }
+    row = db.execute(text("SELECT status FROM purchase_requests WHERE tenant_id=:t AND id=:id FOR UPDATE"),
+                     {"t": context.tenant_id, "id": request_id}).mappings().first()
+    if not row:
+        raise ProcurementError("purchase request not found")
+    if status not in allowed.get(row["status"], set()):
+        raise ProcurementError("invalid purchase request transition")
+    db.execute(text("UPDATE purchase_requests SET status=:s,version=version+1,updated_at=:now WHERE tenant_id=:t AND id=:id"),
+               {"s": status, "now": datetime.now(UTC), "t": context.tenant_id, "id": request_id})
+    verb = {"PENDING_APPROVAL": "submitted", "APPROVED": "approved", "REJECTED": "rejected", "CANCELLED": "cancelled"}.get(status, "status_changed")
+    _audit(db, context, f"procurement.request.{verb}", "purchase_request", request_id)
+
+
+def create_rfq(db: Connection, *, context: RequestContext, rfq_number: str, supplier_ids: list[UUID],
+               purchase_request_id: UUID | None = None, currency_code: str = "THB",
+               response_due_date: date | None = None) -> UUID:
+    require_permission(context, "rfq.manage")
+    if not supplier_ids:
+        raise ProcurementError("RFQ requires at least one supplier")
+    if purchase_request_id is not None:
+        pr = db.execute(text("SELECT status FROM purchase_requests WHERE tenant_id=:t AND id=:id"),
+                        {"t": context.tenant_id, "id": purchase_request_id}).scalar_one_or_none()
+        if pr not in {"APPROVED", "SOURCING"}:
+            raise ProcurementError("approved purchase request not found")
+    unique_suppliers = list(dict.fromkeys(supplier_ids))
+    for supplier_id in unique_suppliers:
+        ok = db.execute(text("""SELECT 1 FROM business_partners
+            WHERE tenant_id=:t AND id=:id AND is_supplier AND status='ACTIVE'"""),
+            {"t": context.tenant_id, "id": supplier_id}).first()
+        if not ok:
+            raise ProcurementError("supplier not found")
+    rfq_id, now = uuid4(), datetime.now(UTC)
+    db.execute(text("""INSERT INTO procurement_rfqs
+      (id,tenant_id,rfq_number,purchase_request_id,status,currency_code,response_due_date,version,created_at,updated_at)
+      VALUES (:id,:t,:number,:pr,'DRAFT',:currency,:due,1,:now,:now)"""),
+      {"id": rfq_id, "t": context.tenant_id, "number": rfq_number, "pr": purchase_request_id,
+       "currency": currency_code.upper(), "due": response_due_date, "now": now})
+    for supplier_id in unique_suppliers:
+        db.execute(text("""INSERT INTO procurement_rfq_suppliers
+          (id,tenant_id,rfq_id,supplier_id,status) VALUES (:id,:t,:rfq,:supplier,'INVITED')"""),
+          {"id": uuid4(), "t": context.tenant_id, "rfq": rfq_id, "supplier": supplier_id})
+    _audit(db, context, "procurement.rfq.created", "procurement_rfq", rfq_id, {"rfq_number": rfq_number})
+    return rfq_id
+
+
+def send_rfq(db: Connection, *, context: RequestContext, rfq_id: UUID) -> None:
+    require_permission(context, "rfq.manage")
+    status = db.execute(text("SELECT status FROM procurement_rfqs WHERE tenant_id=:t AND id=:id FOR UPDATE"),
+                        {"t": context.tenant_id, "id": rfq_id}).scalar_one_or_none()
+    if status is None:
+        raise ProcurementError("RFQ not found")
+    if status != "DRAFT":
+        raise ProcurementError("RFQ must be DRAFT to send")
+    db.execute(text("UPDATE procurement_rfqs SET status='SENT',version=version+1,updated_at=:now WHERE tenant_id=:t AND id=:id"),
+               {"now": datetime.now(UTC), "t": context.tenant_id, "id": rfq_id})
+    _audit(db, context, "procurement.rfq.sent", "procurement_rfq", rfq_id)
+
+
+def record_supplier_quote(db: Connection, *, context: RequestContext, rfq_id: UUID, supplier_id: UUID,
+                          quoted_total: Decimal, note: str | None = None) -> None:
+    require_permission(context, "rfq.manage")
+    if quoted_total < 0:
+        raise ProcurementError("quoted total cannot be negative")
+    rfq_status = db.execute(text("SELECT status FROM procurement_rfqs WHERE tenant_id=:t AND id=:id FOR UPDATE"),
+                            {"t": context.tenant_id, "id": rfq_id}).scalar_one_or_none()
+    if rfq_status not in {"SENT", "RESPONSES_RECEIVED"}:
+        raise ProcurementError("RFQ is not accepting responses")
+    result = db.execute(text("""UPDATE procurement_rfq_suppliers
+        SET status='RESPONDED',quoted_total=:total,quoted_at=:now,note=:note
+        WHERE tenant_id=:t AND rfq_id=:rfq AND supplier_id=:supplier"""),
+        {"total": quoted_total, "now": datetime.now(UTC), "note": note, "t": context.tenant_id,
+         "rfq": rfq_id, "supplier": supplier_id})
+    if result.rowcount != 1:
+        raise ProcurementError("invited supplier not found")
+    if rfq_status == "SENT":
+        db.execute(text("UPDATE procurement_rfqs SET status='RESPONSES_RECEIVED',version=version+1,updated_at=:now WHERE tenant_id=:t AND id=:id"),
+                   {"now": datetime.now(UTC), "t": context.tenant_id, "id": rfq_id})
+
+
+def award_rfq(db: Connection, *, context: RequestContext, rfq_id: UUID, supplier_id: UUID) -> None:
+    require_permission(context, "rfq.manage")
+    status = db.execute(text("SELECT status FROM procurement_rfqs WHERE tenant_id=:t AND id=:id FOR UPDATE"),
+                        {"t": context.tenant_id, "id": rfq_id}).scalar_one_or_none()
+    if status != "RESPONSES_RECEIVED":
+        raise ProcurementError("RFQ must have responses before award")
+    chosen = db.execute(text("""SELECT 1 FROM procurement_rfq_suppliers
+        WHERE tenant_id=:t AND rfq_id=:rfq AND supplier_id=:supplier AND status='RESPONDED'"""),
+        {"t": context.tenant_id, "rfq": rfq_id, "supplier": supplier_id}).first()
+    if not chosen:
+        raise ProcurementError("responding supplier not found")
+    db.execute(text("""UPDATE procurement_rfq_suppliers SET status=CASE WHEN supplier_id=:supplier THEN 'AWARDED' ELSE
+        CASE WHEN status='RESPONDED' THEN 'NOT_SELECTED' ELSE status END END WHERE tenant_id=:t AND rfq_id=:rfq"""),
+        {"supplier": supplier_id, "t": context.tenant_id, "rfq": rfq_id})
+    db.execute(text("""UPDATE procurement_rfqs SET status='AWARDED',awarded_supplier_id=:supplier,
+        version=version+1,updated_at=:now WHERE tenant_id=:t AND id=:id"""),
+        {"supplier": supplier_id, "now": datetime.now(UTC), "t": context.tenant_id, "id": rfq_id})
+    _audit(db, context, "procurement.rfq.awarded", "procurement_rfq", rfq_id, {"supplier_id": str(supplier_id)})
