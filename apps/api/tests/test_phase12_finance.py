@@ -9,7 +9,6 @@ from test_phase4_inventory import ctx, seed
 
 from app.application.finance import (
     FiscalPeriodClosed,
-    FinanceError,
     UnbalancedJournal,
     create_account,
     create_fiscal_period,
