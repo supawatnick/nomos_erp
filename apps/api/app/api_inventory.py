@@ -102,7 +102,33 @@ def reverse_transaction(
     return {"data":{"id":str(tx_id),"status":"POSTED","reversal_of_id":str(transaction_id)},"meta":{"request_id":str(context.request_id)}}
 
 
-@router.get("/balances")
+
+
+@router.get("/transactions")
+def transactions(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> dict[str, object]:
+    context=_context(request,authorization,x_tenant_id)
+    require_permission(context,"inventory.read")
+    engine=create_engine(get_settings().database_url,pool_pre_ping=True)
+    with engine.connect() as connection:
+        rows=connection.execute(text("""
+            SELECT id,legal_entity_id,branch_id,transaction_type,status,source_type,source_id,source_number,
+                   reference,reason,reversal_of_id,reversed_by_id,posted_at
+            FROM inventory_transactions WHERE tenant_id=:tenant
+            ORDER BY posted_at DESC,id DESC LIMIT 200
+        """),{"tenant":context.tenant_id}).mappings().all()
+    data=[]
+    for row in rows:
+        item=dict(row)
+        for key in ("id","legal_entity_id","branch_id","source_id","reversal_of_id","reversed_by_id"):
+            item[key]=str(item[key]) if item[key] else None
+        item["posted_at"]=item["posted_at"].isoformat()
+        data.append(item)
+    return {"data":data,"meta":{"request_id":str(context.request_id)}}
+\n\n@router.get("/balances")
 def balances(
     request: Request,
     authorization: str | None = Header(default=None),
