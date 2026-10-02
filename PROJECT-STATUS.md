@@ -5,9 +5,9 @@
 ## Current stage
 Phase 0 — Specification and Architecture
 
-Overall status: IN PROGRESS
+Overall status: PHASE 0 PASS — READY FOR PHASE 1
 
-Primary objective: finish the architecture contracts and acceptance gates required before Phase 1 engineering scaffold begins.
+Primary objective: begin Phase 1 Engineering Foundation on host 73 only, preserving all Phase 0 contracts.
 
 ## Completed
 
@@ -30,6 +30,8 @@ Primary objective: finish the architecture contracts and acceptance gates requir
 - [x] Document numbering contract — `docs/NUMBERING.md`
 - [x] Stable API error-code baseline — `docs/ERROR-CODES.md`
 - [x] Operations baseline — `docs/OPERATIONS.md`
+- [x] Web Design Contract — `docs/WEB-DESIGN-CONTRACT.md`
+- [x] Phase 0 architecture review — `docs/PHASE-0-REVIEW.md`
 - [x] Roadmap aligned to Master Plan.
 - [x] Inventory/Documents/RBAC/Multi-tenancy implementation skills added.
 
@@ -60,41 +62,30 @@ Phase 0 is NOT complete. The following contracts still require completion and re
 - [x] Permission matrix: actor/role examples mapped to permissions and high-risk actions — `docs/AUTHORIZATION-MATRIX.md`.
 - [x] Inventory state machine and exact posting/reversal rules — `docs/INVENTORY-EXECUTION.md`.
 - [x] Inventory concurrency/locking/idempotency contract — `docs/INVENTORY-EXECUTION.md`.
-- [ ] Organization model details: legal entity/branch/warehouse ownership and defaults.
+- [x] Organization model details — `docs/ORGANIZATION.md`.
 - [x] API conventions: versioning, pagination/filtering, request context, idempotency, errors — `docs/API-AUDIT-CONTRACT.md`.
 - [x] Audit event taxonomy — `docs/API-AUDIT-CONTRACT.md`.
-- [ ] Import/opening-stock contract.
-- [ ] Phase 1–6 acceptance criteria/checklists.
-- [ ] Phase 0 cross-document consistency review.
+- [x] Import/opening-stock contract — `docs/IMPORT-OPENING-STOCK.md`.
+- [x] Phase 1–6 acceptance criteria/checklists — `docs/PHASE-1-6-ACCEPTANCE.md`.
+- [x] Phase 0 cross-document consistency review — PASS in `docs/PHASE-0-REVIEW.md`.
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Close remaining Phase 0 contracts
-Complete:
-1. Organization model details: legal entity/branch/warehouse ownership/defaults.
-2. Import and opening-stock execution contract.
-3. Phase 1–6 acceptance criteria/checklists.
-4. NOMOS Web Design Contract derived from the approved uploaded DESIGN.md before Web scaffold.
+### NEXT 1 — Phase 1 environment verification on host 73
+Before scaffolding:
+1. sync `/root/nomos_erp` on host 73 to current main using host 73 credentials;
+2. verify working tree/branch and do not overwrite uncommitted work;
+3. inventory installed Node, package manager, Python, dependency manager, Docker/Compose and Git versions on host 73;
+4. record chosen supported runtime versions/tooling in engineering docs;
+5. confirm required ports/storage and that no NOMOS workload is placed on host 72.
 
-Exit: no known Phase 0 contract remains unchecked except final review.
+Exit: host 73 is verified ready for deterministic scaffold or missing dependencies are explicitly identified for installation on 73.
 
-### NEXT 2 — Phase 0 architecture review
-Cross-check ERD, Inventory execution, RBAC, API/Audit, organization/import/design contracts for contradictions, missing tenant scope, lifecycle conflicts and future Purchasing/Sales/Accounting/LINE compatibility.
+### NEXT 2 — Scaffold Phase 1 on host 73
+Create Web/API/worker/module/infra/test structure, configuration, PostgreSQL development service, migration baseline, health/readiness and shared request context foundations.
 
-Exit: Phase 0 marked PASS only if all critical findings are resolved or explicitly blocked.
-
-### NEXT 3 — Start Phase 1 on host 73 only
-Only after Phase 0 PASS:
-- sync repository on host 73
-- inspect installed runtime/tooling on 73
-- scaffold Web/API/worker
-- configure PostgreSQL/Redis development infrastructure on 73
-- create migration baseline
-- CI/lint/type/test/build
-- health/readiness
-- prove clean boot from documented commands
-
-Do NOT start Phase 1 before the Phase 0 exit gate passes.
+### NEXT 3 — Phase 1 CI and clean-boot gate
+Add lint/type/unit/integration/migration/build/secret/dependency checks, document clean boot, execute the Phase 1 acceptance gate and record evidence.
 
 ## Session handoff procedure
 Before starting NOMOS work:
@@ -112,6 +103,11 @@ Before ending meaningful work:
 6. Record the latest meaningful result below.
 
 ## Latest activity
+- Phase 0 final architecture review PASS — `docs/PHASE-0-REVIEW.md`.
+- Closed Organization, Import/Opening Stock, Phase 1–6 Acceptance and Web Design contracts.
+- Review found warehouse branch/legal-entity DB-integrity ambiguity; resolved in ERD with composite organization FK.
+- All critical Phase 0 findings resolved; no architecture blocker remains.
+- Phase 0 status: PASS. Immediate next action: Phase 1 environment verification on host 73 only.
 - NEXT 1 Inventory execution/concurrency contract PASS — `docs/INVENTORY-EXECUTION.md`.
 - NEXT 2 Authorization matrix PASS — `docs/AUTHORIZATION-MATRIX.md`.
 - NEXT 3 API/Audit contract PASS — `docs/API-AUDIT-CONTRACT.md`.
