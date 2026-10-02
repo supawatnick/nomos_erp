@@ -6,7 +6,7 @@ from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, text
 
-from app.application.auth import trusted_context
+from app.api_master import trusted_context
 from app.application.sales import (
     SalesError,
     accept_quotation,
