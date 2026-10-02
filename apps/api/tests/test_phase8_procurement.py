@@ -82,8 +82,8 @@ def test_pr_rfq_quote_award_has_no_inventory_side_effect(engine):
         send_rfq(db, context=context, rfq_id=rfq)
         record_supplier_quote(db, context=context, rfq_id=rfq, supplier_id=s1,
             lines=[{"rfq_line_id": rfq_line, "offered_quantity": Decimal("2.5"),
-                    "unit_price": Decimal("500.10"), "discount_amount": Decimal("0"),
-                    "tax_amount": Decimal("0")}])
+                    "unit_price": Decimal("500.10"), "discount_amount": Decimal(0),
+                    "tax_amount": Decimal(0)}])
         record_supplier_quote(db, context=context, rfq_id=rfq, supplier_id=s2,
             lines=[{"rfq_line_id": rfq_line, "offered_quantity": Decimal("2.5"),
                     "unit_price": Decimal("520.00")}])
