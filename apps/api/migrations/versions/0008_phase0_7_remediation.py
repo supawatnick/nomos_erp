@@ -6,6 +6,8 @@ down_revision = "0007_phase7_crm"
 
 
 def upgrade():
+    op.execute("UPDATE permissions SET description='Post inventory receipts' WHERE code='inventory.receive'")
+    op.execute("UPDATE permissions SET description='Post adjustments, reversals and opening stock', risk_level='HIGH' WHERE code='inventory.adjust'")
     op.create_table(
         "import_batches",
         sa.Column("id",sa.Uuid(),primary_key=True),
