@@ -11,7 +11,7 @@ from app.domain.security import RequestContext, require_permission
 def configure_posting_rule(db: Connection, *, context: RequestContext, legal_entity_id: UUID,
                            source_type: str, debit_account_id: UUID, credit_account_id: UUID) -> UUID:
     require_permission(context,"accounting.configure")
-    count=db.execute(text("""SELECT count(*) FROM finance_accounts WHERE tenant_id=:t AND legal_entity_id=:e
+    count: int=db.execute(text("""SELECT count(*) FROM finance_accounts WHERE tenant_id=:t AND legal_entity_id=:e
       AND id=ANY(:ids) AND status='ACTIVE'"""),{"t":context.tenant_id,"e":legal_entity_id,
       "ids":[debit_account_id,credit_account_id]}).scalar_one()
     if count!=2: raise FinanceError("posting rule accounts must belong to legal entity")
