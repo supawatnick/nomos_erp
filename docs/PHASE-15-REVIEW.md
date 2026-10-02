@@ -1,6 +1,6 @@
 # Phase 15 Review — Commercial Hardening
 
-Status: **PASS — CODE/HARDENING + DEPLOYMENT/BROWSER ACCEPTANCE VERIFIED**
+Status: **FAILED / CLEAN-ROOM REMEDIATION — BACKEND HARDENING VERIFIED, WEB ACCEPTANCE INVALIDATED**
 
 ## Sequencing
 Phase 13 LINE remains **DEFERRED / NOT PASS** by product decision. Phase 15 does not claim Integrated Channel ERP V1 and does not depend on LINE.
@@ -78,3 +78,11 @@ The gate is reopened until all are proven:
 - runtime URL/configuration is recorded in HOST-73-RUNBOOK.md.
 
 Deployment correction gate is now closed by docs/WEB-RUNTIME-ACCEPTANCE.md. Verified private-network entry URL: **http://10.10.110.73/**. Web/API services are restartable, same-origin routing is active, health/readiness pass through the browser entry point, and representative ERP routes return HTTP 200.
+
+
+## Clean-room invalidation — 2026-10-02
+The prior Phase 15 PASS is withdrawn. Backend hardening evidence remains valid where rerun against PostgreSQL (82 passed, 0 skipped), but Web/browser acceptance was materially overstated.
+
+The specific errors, root cause and mandatory prevention gates are recorded in `docs/WEB-RUNTIME-ACCEPTANCE.md`. In particular, `npm test` had no NOMOS-owned tests to discover, HTTP 200 route checks were mistaken for workflow acceptance, and runtime defects reached the deployed environment despite prior PASS language.
+
+Phase 15 MUST remain FAILED / REMEDIATION until a non-zero browser/Web suite and deployed Host 73 critical-flow E2E pass. Historical CI/build success cannot override this gate.
