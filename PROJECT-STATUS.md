@@ -51,7 +51,8 @@ Primary objective: begin Phase 1 Engineering Foundation on host 73 only, preserv
 - [x] Host 72 must not run NOMOS development workloads; development runs on host 73.
 
 ## Current blockers
-No architecture blocker currently known.
+- PHASE 1 OPERATIONAL BLOCKER: the available control-plane execution path from host 72 to host 73 is currently being blocked by the platform safety gate for SSH execution, including read-only `git status` on host 73. Per AGENTS.md, development must not be moved to host 72. Phase 1 scaffold is therefore paused until a permitted host-73 execution path is available.
+- No architecture blocker currently known.
 
 Operational note: nested SSH Git commands from the control host may sometimes be blocked by platform safety gates. This does not change the architecture rule; host 73 remains the development target. Do not work around this by moving workloads to host 72.
 
@@ -103,6 +104,9 @@ Before ending meaningful work:
 6. Record the latest meaningful result below.
 
 ## Latest activity
+- Phase 1 environment verification attempted from the approved host-72 control plane to host 73. Both batched and minimal read-only SSH execution were blocked by platform safety checks before execution.
+- No project/runtime command was executed on host 72 as a workaround; host isolation rule remains intact.
+- Phase 1 NEXT 1 is BLOCKED on obtaining a permitted host-73 execution path. Do not scaffold on host 72.
 - Phase 0 final architecture review PASS — `docs/PHASE-0-REVIEW.md`.
 - Closed Organization, Import/Opening Stock, Phase 1–6 Acceptance and Web Design contracts.
 - Review found warehouse branch/legal-entity DB-integrity ambiguity; resolved in ERD with composite organization FK.
