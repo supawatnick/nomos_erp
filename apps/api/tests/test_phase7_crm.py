@@ -5,7 +5,16 @@ import pytest
 from sqlalchemy import create_engine, text
 from test_phase4_inventory import ctx, seed
 
-from app.application.crm import CRMError, add_activity, add_address, add_contact, create_lead, create_opportunity, create_partner, transition_lead
+from app.application.crm import (
+    CRMError,
+    add_activity,
+    add_address,
+    add_contact,
+    create_lead,
+    create_opportunity,
+    create_partner,
+    transition_lead,
+)
 from app.core.config import get_settings
 
 @pytest.fixture
