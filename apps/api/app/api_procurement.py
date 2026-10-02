@@ -9,8 +9,13 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api_master import trusted_context
 from app.application.procurement import (
-    ProcurementError, award_rfq, create_purchase_request, create_rfq,
-    record_supplier_quote, send_rfq, transition_purchase_request,
+    ProcurementError,
+    award_rfq,
+    create_purchase_request,
+    create_rfq,
+    record_supplier_quote,
+    send_rfq,
+    transition_purchase_request,
 )
 from app.core.config import get_settings
 from app.domain.security import require_permission
