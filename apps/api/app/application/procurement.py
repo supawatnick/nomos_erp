@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import Connection, text
 
+from app.application.inventory import StockLine, post_procurement_inventory
 from app.application.numbering import allocate_document_number
 from app.domain.security import RequestContext, require_permission
 from app.infrastructure.platform import write_audit, write_outbox
@@ -309,3 +310,172 @@ def send_purchase_order(db: Connection, *, context: RequestContext, order_id: UU
         WHERE tenant_id=:t AND id=:id"""),
         {"now": datetime.now(UTC), "t": context.tenant_id, "id": order_id})
     _audit(db, context, "procurement.order.sent", "purchase_order", order_id)
+
+
+def _refresh_po_receipt_status(db: Connection, tenant_id: UUID, order_id: UUID) -> str:
+    rows = db.execute(text("""SELECT ordered_quantity,received_quantity FROM purchase_order_lines
+        WHERE tenant_id=:t AND purchase_order_id=:id ORDER BY line_number FOR UPDATE"""),
+        {"t": tenant_id, "id": order_id}).mappings().all()
+    received = sum((Decimal(row["received_quantity"]) for row in rows), Decimal(0))
+    if rows and all(Decimal(row["received_quantity"]) >= Decimal(row["ordered_quantity"]) for row in rows):
+        status = "RECEIVED"
+    elif received > 0:
+        status = "PARTIALLY_RECEIVED"
+    else:
+        status = "SENT"
+    db.execute(text("""UPDATE purchase_orders SET status=:status,version=version+1,updated_at=:now
+        WHERE tenant_id=:t AND id=:id"""),
+        {"status": status, "now": datetime.now(UTC), "t": tenant_id, "id": order_id})
+    return status
+
+
+def post_goods_receipt(
+    db: Connection, *, context: RequestContext, order_id: UUID, location_id: UUID,
+    lines: list[dict], idempotency_key: str, period_key: str | None = None,
+) -> UUID:
+    require_permission(context, "procurement.receive")
+    if not lines:
+        raise ProcurementError("goods receipt requires lines")
+    existing = db.execute(text("""SELECT id FROM goods_receipts
+        WHERE tenant_id=:t AND idempotency_key=:key AND status='POSTED'"""),
+        {"t": context.tenant_id, "key": idempotency_key}).scalar_one_or_none()
+    if existing:
+        return existing
+    order = db.execute(text("""SELECT order_number,legal_entity_id,branch_id,status FROM purchase_orders
+        WHERE tenant_id=:t AND id=:id FOR UPDATE"""),
+        {"t": context.tenant_id, "id": order_id}).mappings().first()
+    if not order or order["status"] not in {"SENT", "PARTIALLY_RECEIVED"}:
+        raise ProcurementError("purchase order is not receivable")
+    location = db.execute(text("""SELECT 1 FROM warehouse_locations l JOIN warehouses w
+        ON w.tenant_id=l.tenant_id AND w.id=l.warehouse_id
+        WHERE l.tenant_id=:t AND l.id=:location AND l.status='ACTIVE' AND l.allow_stock
+          AND w.status='ACTIVE' AND w.legal_entity_id=:entity"""),
+        {"t": context.tenant_id, "location": location_id, "entity": order["legal_entity_id"]}).first()
+    if not location:
+        raise ProcurementError("receipt location not found")
+    normalized = []
+    seen = set()
+    for line in lines:
+        line_id = UUID(str(line["purchase_order_line_id"]))
+        if line_id in seen:
+            raise ProcurementError("duplicate purchase order line")
+        seen.add(line_id)
+        quantity = Decimal(line["quantity"])
+        if quantity <= 0:
+            raise ProcurementError("receipt quantity must be positive")
+        row = db.execute(text("""SELECT product_id,unit_id,ordered_quantity,received_quantity
+            FROM purchase_order_lines WHERE tenant_id=:t AND id=:line AND purchase_order_id=:po FOR UPDATE"""),
+            {"t": context.tenant_id, "line": line_id, "po": order_id}).mappings().first()
+        if not row:
+            raise ProcurementError("purchase order line not found")
+        if Decimal(row["received_quantity"]) + quantity > Decimal(row["ordered_quantity"]):
+            raise ProcurementError("receipt exceeds ordered quantity")
+        normalized.append((line_id, quantity, row))
+    now = datetime.now(UTC)
+    receipt_id = uuid4()
+    number = allocate_document_number(db, tenant_id=context.tenant_id, document_type="GR",
+        legal_entity_id=order["legal_entity_id"], branch_id=order["branch_id"],
+        period_key=period_key or str(now.year))
+    db.execute(text("""INSERT INTO goods_receipts
+        (id,tenant_id,receipt_number,purchase_order_id,location_id,status,idempotency_key,created_at,updated_at)
+        VALUES (:id,:t,:number,:po,:location,'DRAFT',:key,:now,:now)"""),
+        {"id": receipt_id, "t": context.tenant_id, "number": number, "po": order_id,
+         "location": location_id, "key": idempotency_key, "now": now})
+    stock_lines = []
+    for line_id, quantity, row in normalized:
+        db.execute(text("""INSERT INTO goods_receipt_lines
+            (id,tenant_id,goods_receipt_id,purchase_order_line_id,quantity)
+            VALUES (:id,:t,:receipt,:line,:quantity)"""),
+            {"id": uuid4(), "t": context.tenant_id, "receipt": receipt_id, "line": line_id, "quantity": quantity})
+        stock_lines.append(StockLine(product_id=row["product_id"], unit_id=row["unit_id"],
+                                     location_id=location_id, quantity=quantity))
+    inventory_id = post_procurement_inventory(
+        db, context=context, transaction_type="RECEIVE", legal_entity_id=order["legal_entity_id"],
+        branch_id=order["branch_id"], lines=stock_lines, idempotency_key=f"GR:{idempotency_key}",
+        source_type="GOODS_RECEIPT", source_id=receipt_id, source_number=number,
+    )
+    for line_id, quantity, _ in normalized:
+        db.execute(text("""UPDATE purchase_order_lines SET received_quantity=received_quantity+:quantity
+            WHERE tenant_id=:t AND id=:line"""),
+            {"quantity": quantity, "t": context.tenant_id, "line": line_id})
+    status = _refresh_po_receipt_status(db, context.tenant_id, order_id)
+    db.execute(text("""UPDATE goods_receipts SET status='POSTED',inventory_transaction_id=:inventory,
+        posted_at=:now,updated_at=:now WHERE tenant_id=:t AND id=:id"""),
+        {"inventory": inventory_id, "now": now, "t": context.tenant_id, "id": receipt_id})
+    _audit(db, context, "procurement.receipt.posted", "goods_receipt", receipt_id,
+           {"purchase_order_id": str(order_id), "inventory_transaction_id": str(inventory_id), "po_status": status})
+    write_outbox(db, tenant_id=context.tenant_id, aggregate_type="goods_receipt", aggregate_id=receipt_id,
+                 event_type="procurement.receipt.posted", payload={"goods_receipt_id": str(receipt_id)})
+    return receipt_id
+
+
+def post_purchase_return(
+    db: Connection, *, context: RequestContext, order_id: UUID, location_id: UUID,
+    lines: list[dict], idempotency_key: str, period_key: str | None = None,
+) -> UUID:
+    require_permission(context, "procurement.receive")
+    if not lines:
+        raise ProcurementError("purchase return requires lines")
+    existing = db.execute(text("""SELECT id FROM purchase_returns
+        WHERE tenant_id=:t AND idempotency_key=:key AND status='POSTED'"""),
+        {"t": context.tenant_id, "key": idempotency_key}).scalar_one_or_none()
+    if existing:
+        return existing
+    order = db.execute(text("""SELECT order_number,legal_entity_id,branch_id,status FROM purchase_orders
+        WHERE tenant_id=:t AND id=:id FOR UPDATE"""),
+        {"t": context.tenant_id, "id": order_id}).mappings().first()
+    if not order or order["status"] not in {"PARTIALLY_RECEIVED", "RECEIVED"}:
+        raise ProcurementError("purchase order has no returnable receipt")
+    normalized = []
+    seen = set()
+    for line in lines:
+        line_id = UUID(str(line["purchase_order_line_id"]))
+        if line_id in seen:
+            raise ProcurementError("duplicate purchase order line")
+        seen.add(line_id)
+        quantity = Decimal(line["quantity"])
+        if quantity <= 0:
+            raise ProcurementError("return quantity must be positive")
+        row = db.execute(text("""SELECT product_id,unit_id,received_quantity,returned_quantity
+            FROM purchase_order_lines WHERE tenant_id=:t AND id=:line AND purchase_order_id=:po FOR UPDATE"""),
+            {"t": context.tenant_id, "line": line_id, "po": order_id}).mappings().first()
+        if not row:
+            raise ProcurementError("purchase order line not found")
+        if Decimal(row["returned_quantity"]) + quantity > Decimal(row["received_quantity"]):
+            raise ProcurementError("return exceeds received quantity")
+        normalized.append((line_id, quantity, row))
+    now = datetime.now(UTC)
+    return_id = uuid4()
+    number = allocate_document_number(db, tenant_id=context.tenant_id, document_type="PRT",
+        legal_entity_id=order["legal_entity_id"], branch_id=order["branch_id"],
+        period_key=period_key or str(now.year))
+    db.execute(text("""INSERT INTO purchase_returns
+        (id,tenant_id,return_number,purchase_order_id,location_id,status,idempotency_key,created_at,updated_at)
+        VALUES (:id,:t,:number,:po,:location,'DRAFT',:key,:now,:now)"""),
+        {"id": return_id, "t": context.tenant_id, "number": number, "po": order_id,
+         "location": location_id, "key": idempotency_key, "now": now})
+    stock_lines = []
+    for line_id, quantity, row in normalized:
+        db.execute(text("""INSERT INTO purchase_return_lines
+            (id,tenant_id,purchase_return_id,purchase_order_line_id,quantity)
+            VALUES (:id,:t,:return_id,:line,:quantity)"""),
+            {"id": uuid4(), "t": context.tenant_id, "return_id": return_id, "line": line_id, "quantity": quantity})
+        stock_lines.append(StockLine(product_id=row["product_id"], unit_id=row["unit_id"],
+                                     location_id=location_id, quantity=quantity))
+    inventory_id = post_procurement_inventory(
+        db, context=context, transaction_type="ISSUE", legal_entity_id=order["legal_entity_id"],
+        branch_id=order["branch_id"], lines=stock_lines, idempotency_key=f"PRT:{idempotency_key}",
+        source_type="PURCHASE_RETURN", source_id=return_id, source_number=number,
+    )
+    for line_id, quantity, _ in normalized:
+        db.execute(text("""UPDATE purchase_order_lines SET returned_quantity=returned_quantity+:quantity
+            WHERE tenant_id=:t AND id=:line"""),
+            {"quantity": quantity, "t": context.tenant_id, "line": line_id})
+    db.execute(text("""UPDATE purchase_returns SET status='POSTED',inventory_transaction_id=:inventory,
+        posted_at=:now,updated_at=:now WHERE tenant_id=:t AND id=:id"""),
+        {"inventory": inventory_id, "now": now, "t": context.tenant_id, "id": return_id})
+    _audit(db, context, "procurement.return.posted", "purchase_return", return_id,
+           {"purchase_order_id": str(order_id), "inventory_transaction_id": str(inventory_id)})
+    write_outbox(db, tenant_id=context.tenant_id, aggregate_type="purchase_return", aggregate_id=return_id,
+                 event_type="procurement.return.posted", payload={"purchase_return_id": str(return_id)})
+    return return_id
