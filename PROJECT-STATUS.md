@@ -94,6 +94,15 @@ For Web-dependent phases, acceptance additionally requires:
 - Focused browser mutation acceptance now passes 1/1 end-to-end: RECEIVE is posted, movement is visible, explicit reversal is posted, and reversal is visible.
 - CI is green for the production fix commit e6a0e8ce7b5c5190b8a794394c1f16519d226458 and preceding mypy fixes. The latest test-only synchronization commit is still running CI at the time of this note.
 
+
+## Verification continuation — 2026-10-02 23:45 UTC
+- GitHub Actions is green through commit 305da778eb852c16c523d957a7fd203b0bfab1c8, including the production private-HTTP idempotency fix and browser test synchronization.
+- Host 73 was fast-forwarded to 305da77; nomos-api.service and nomos-web.service both report active.
+- Important runtime topology correction: nomos-api.service listens on 127.0.0.1:8020, not 127.0.0.1:8000. Probing :8000 produced an unrelated 500 and must not be used as NOMOS API health evidence.
+- Direct API health on 127.0.0.1:8020 returns 200 {status: ok}; public Caddy route http://10.10.110.73/health also returns 200.
+- Runtime acceptance against the public origin passed 3/3 again: critical ERP routes, health/readiness, and demo login + authenticated reads.
+- Inventory browser mutation acceptance remains verified end-to-end from the prior run: RECEIVE 201, movement visible, reversal 201, reversal visible.
+
 ## NEXT ACTIONS
 - **NEXT 1:** repair and acceptance-test authentication/login end-to-end.
 - **NEXT 2:** establish shared Web design system + shell and automated Web test harness.
