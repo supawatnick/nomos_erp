@@ -1,6 +1,6 @@
 # Phase 0–7 Remediation Audit
 
-Status: **OPEN — BLOCKS PHASE 8**
+Status: **PASS — PHASE 0–7 BASELINE CLEAN — READY FOR PHASE 8**
 
 Purpose: reconcile implemented behavior against the authoritative Phase 0–7 contracts before Procurement begins. This remediation is corrective closure work and does not change the Phase 8 scope.
 
@@ -50,3 +50,39 @@ Phase 8 remains blocked until:
 9. PROJECT-STATUS.md and Phase reviews contain no contradictory stale state.
 
 After closure, mark this document **PASS — PHASE 0–7 BASELINE CLEAN — READY FOR PHASE 8** and record exact CI evidence.
+
+
+## Resolution record
+
+### R-01 — CLOSED
+Tenant-safe administration read APIs and `/admin` Web surface now cover Users, Roles/Permissions and Audit. Server-side `user.read`, `role.read` and `audit.read` checks remain authoritative.
+
+### R-02 — CLOSED
+Migration `0008_phase0_7_remediation`, staged import application/API and `/inventory/imports` implement PRODUCT and OPENING_STOCK stage/validate/preview/commit behavior. Validation has no business side effects. Opening stock commits through `post_inventory(... transaction_type="OPENING")`; direct balance mutation is not used. Opening authorization was corrected from `inventory.receive` to the contractually required high-risk `inventory.adjust`.
+
+### R-03 — CLOSED
+Project status and Phase 5/6 review evidence were reconciled during this closure. Obsolete Phase 4-not-started/pending closure statements are no longer authoritative.
+
+### R-04 — CLOSED
+New remediation Web surfaces reuse the approved ERP primitives/tokens: #FAFAFA workspace, white bordered surfaces, 12px cards/panels, 6px controls, Indigo #6366F1 accent, table/panel operational layout and existing responsive behavior. No marketing-page visual pattern was introduced.
+
+## Acceptance evidence
+Implementation acceptance GitHub Actions run **36986274423** on commit `87386d7d6b14680224d6b1e2709a29bedf595ca0`: **PASS**.
+- Ruff: PASS.
+- mypy: PASS.
+- Alembic clean upgrade through `0008_phase0_7_remediation`: PASS.
+- PostgreSQL pytest: PASS, including remediation acceptance (47 tests total at this gate).
+- Product import validation side-effect-free: PASS.
+- Product import commit/replay safety: PASS.
+- Cross-tenant import batch hiding: PASS.
+- Opening Stock requires `inventory.adjust`: PASS.
+- pip-audit: PASS.
+- npm ci / high audit: PASS.
+- Web lint/typecheck/tests/build: PASS.
+- remediation Web route/behavior tests: PASS.
+- gitleaks: PASS.
+
+A final documentation-only CI run is required after the status/review reconciliation commit; its run ID is recorded in PROJECT-STATUS.md after verification.
+
+## Phase 8 gate
+The functional Phase 0–7 remediation gate is closed. Phase 8 Procurement may begin only from a green final documentation commit and must continue to consume Phase 7 supplier identity and Phase 4 Inventory contracts without direct stock mutation.
