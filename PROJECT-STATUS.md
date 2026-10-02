@@ -3,11 +3,11 @@
 > Operational handoff/source of truth. Read after AGENTS.md before every work session.
 
 ## Current stage
-Phase 12 Finance & Accounting Closure
+Phase 14 Commercial SaaS Layer
 
-Overall status: **PHASE 12 PASS — CORE ERP V1 GATE MET — READY FOR PHASE 13**
+Overall status: **PHASE 12 PASS — PHASE 13 DEFERRED BY PRODUCT DECISION — PHASE 14 IN PROGRESS**
 
-Primary objective: begin Phase 13 LINE from the clean Phase 12 Core ERP V1 baseline on host 73 only.
+Primary objective: implement Phase 14 Commercial SaaS Layer from the clean Phase 12 Core ERP V1 baseline; Phase 13 LINE remains deferred and is not PASS.
 
 ## Completed
 
@@ -258,15 +258,33 @@ Primary objective: begin Phase 13 LINE from the clean Phase 12 Core ERP V1 basel
 - [x] Detailed review: docs/PHASE-12-REVIEW.md.
 - [x] Core ERP V1 four-core implementation gate met.
 
+## Phase 13 — LINE
+- [ ] **DEFERRED by product decision on 2026-10-02 — NOT PASS.**
+- [ ] No LINE implementation is required by Core ERP V1 (Phase 0–12).
+- [ ] Account linking, webhook security/deduplication, LINE notification/approval and LINE ERP commands remain unimplemented.
+- [x] Sequencing decision: Phase 14 and Phase 15 may proceed without introducing a dependency on LINE.
+- [ ] Phase 13 must be resumed and pass its own exit gate before claiming Integrated Channel ERP V1.
+
+## Phase 14 — Commercial SaaS Layer
+- [ ] IN PROGRESS — onboarding/provisioning.
+- [ ] Plans, subscriptions and entitlements separated from RBAC.
+- [ ] Limits and server-side entitlement enforcement.
+- [ ] Trial/suspend/cancel/export/retention lifecycle.
+- [ ] Repeatable tenant provisioning acceptance.
+- [ ] Web/API/tenant-isolation/audit acceptance.
+- [ ] Detailed review: docs/PHASE-14-REVIEW.md.
+
 ## Current blockers
 - No Phase 12 functional blocker remains.
 - Historical host 73 stashes remain preserved housekeeping only.
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Phase 13 contract read
-Read LINE transport/identity/security contracts from the verified Phase 12 Core ERP V1 baseline.
+### NEXT 1 — Phase 14 Commercial SaaS foundation
+Implement plans, subscriptions, entitlements and repeatable onboarding/provisioning with entitlement checks explicitly separate from RBAC.
 
-### NEXT 2 — LINE implementation
-Implement tenant LINE configuration, secure account linking, signed/deduplicated webhook and confirmation-based ERP operations over the same application services and permissions.
+### NEXT 2 — Commercial lifecycle
+Implement limits plus trial/suspend/cancel/export/retention state transitions and audit evidence.
 
+### NEXT 3 — Phase 14 acceptance
+Prove tenant isolation, entitlement/RBAC separation, repeatable provisioning, lifecycle enforcement, Web/API gates, CI and host 73 runtime sync. Phase 13 remains DEFERRED and must not be marked PASS.
