@@ -58,10 +58,10 @@ def _decimal(value: Decimal) -> Decimal:
     return value
 
 
-def _fingerprint(kind: str, legal_entity_id: UUID, branch_id: UUID | None, lines: list[StockLine], reference: str | None, reason: str | None) -> str:
+def _fingerprint(kind: str, legal_entity_id: UUID, branch_id: UUID | None, lines: list[StockLine], reference: str | None, reason: str | None, source_type: str | None, source_id: UUID | None, source_number: str | None) -> str:
     body = {
         "type": kind, "legal_entity_id": str(legal_entity_id), "branch_id": str(branch_id) if branch_id else None,
-        "reference": reference, "reason": reason,
+        "reference": reference, "reason": reason, "source_type":source_type, "source_id":str(source_id) if source_id else None, "source_number":source_number,
         "lines": [
             {"product_id":str(x.product_id),"unit_id":str(x.unit_id),"location_id":str(x.location_id),
              "destination_location_id":str(x.destination_location_id) if x.destination_location_id else None,
@@ -155,7 +155,7 @@ def post_inventory(
     if kind not in {"RECEIVE","ISSUE","TRANSFER","ADJUST","OPENING"} or not lines:
         raise InventoryError("invalid inventory command")
     require_permission(context, PERMISSION[kind])
-    fp = _fingerprint(kind, legal_entity_id, branch_id, lines, reference, reason)
+    fp = _fingerprint(kind, legal_entity_id, branch_id, lines, reference, reason, source_type, source_id, source_number)
     replay = _claim(connection, context.tenant_id, idempotency_key, fp)
     if replay:
         return replay
