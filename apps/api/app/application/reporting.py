@@ -1,6 +1,6 @@
 import csv
 import io
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
@@ -30,7 +30,7 @@ REPORT_COLUMNS: dict[str, list[str]] = {
 
 
 def _bounds(start: date | None, end: date | None, limit: int) -> tuple[date, date, int]:
-    today = date.today()
+    today = datetime.now(UTC).date()
     end = end or today
     start = start or end - timedelta(days=30)
     if start > end:
