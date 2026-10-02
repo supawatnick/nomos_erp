@@ -5,14 +5,13 @@ from fastapi import HTTPException, status
 from sqlalchemy import create_engine, text
 
 from app.core.config import get_settings
-from app.infrastructure.platform import write_audit
-
 from app.domain.security import (
     RequestContext,
     hash_session_token,
     new_session_token,
     verify_password,
 )
+from app.infrastructure.platform import write_audit
 
 
 def resolve_session(token: str, tenant_id: UUID, request_id: UUID) -> RequestContext:
