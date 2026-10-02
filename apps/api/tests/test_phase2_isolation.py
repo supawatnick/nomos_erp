@@ -8,7 +8,12 @@ from sqlalchemy.exc import IntegrityError
 from app.application.auth import resolve_session
 from app.core.config import get_settings
 from app.domain.security import hash_session_token
-from app.infrastructure.platform import (\n    LegalEntityRepository,\n    claim_idempotency,\n    write_audit,\n    write_outbox,\n)
+from app.infrastructure.platform import (
+    LegalEntityRepository,
+    claim_idempotency,
+    write_audit,
+    write_outbox,
+)
 
 
 @pytest.fixture
