@@ -7,7 +7,7 @@ Phase 3 — Catalog and Warehouse
 
 Overall status: **PHASE 3 PASS — READY FOR PHASE 4**
 
-Primary objective: begin Phase 4 Inventory Engine on host 73 only while preserving Phase 0–3 tenant, security, catalog and organization invariants.
+Primary objective: begin Phase 4 Inventory Engine on host 73 only while preserving Phase 0–3 invariants and the revised four-core ERP framework: Finance & Accounting, Inventory & Warehouse, Procurement & Purchasing, Sales & CRM.
 
 ## Completed
 
@@ -74,6 +74,15 @@ Primary objective: begin Phase 4 Inventory Engine on host 73 only while preservi
 - Stock-bearing warehouse/location archive enforcement becomes active with Phase 4 inventory state; Phase 3 has no stock ledger/balance state.
 - Host 72 remains control/orchestration only; NOMOS runtime/build/test/database execution remains on host 73.
 
+## Planning revision after Phase 3
+- [x] Four first-class ERP cores locked in MASTER-PLAN/ROADMAP/MODULES/ARCHITECTURE.
+- [x] Sales expanded to Sales & CRM with mandatory QT, revision/acceptance and order-status tracking.
+- [x] Procurement expanded with RFQ/supplier comparison and procurement status tracking.
+- [x] Finance & Accounting promoted from future boundary to required Core ERP V1 module.
+- [x] Cross-core flows locked: QT->SO->Inventory->Invoice/AR->Receipt and PR/RFQ->PO->Inventory Receipt->Invoice/AP->Payment.
+- [x] Added skills/finance.md, skills/procurement.md and skills/sales-crm.md; updated product/skills index.
+- [x] Core ERP V1 release gate moved to Phase 12 where all four cores are operational.
+
 ## Current blockers
 - None for Phase 4.
 - Platform safety gates may require permitted single-command SSH patterns; this is an execution-tool constraint, not an architecture blocker.
@@ -97,4 +106,5 @@ Implement idempotency replay/conflict/concurrent-key tests, concurrent issue/no-
 - Phase 3 Catalog and Warehouse implementation completed.
 - Phase 3 PostgreSQL/API/Web/security regression gate PASS in GitHub Actions run 36974731001.
 - Phase 3 review recorded in docs/PHASE-3-REVIEW.md.
-- Immediate next executable action: Phase 4 inventory persistence on host 73.
+- Four-core ERP plan/framework/skills revision completed after Phase 3 without invalidating Phase 0–3 acceptance.
+- Immediate next executable action remains Phase 4 inventory persistence on host 73; its contracts must preserve later Procurement/Sales/Finance integration.
