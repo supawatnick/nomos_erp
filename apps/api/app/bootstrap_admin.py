@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import UTC, datetime
-from secrets import token_bytes
+from secrets import token_bytes, token_urlsafe
 from uuid import uuid4
 
 from sqlalchemy import create_engine, text
@@ -61,13 +61,13 @@ def bootstrap_admin(*, email: str, password: str, tenant_slug: str, tenant_name:
               WHERE rp.tenant_id=:tenant AND rp.role_id=:role AND rp.permission_id=p.id)"""),
             {"tenant": tenant, "role": role, "now": now})
     engine.dispose()
-    return str(tenant)
+    return str(tenant), password
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--email", required=True)
-    parser.add_argument("--password", required=True)
+    parser.add_argument("--password")
     parser.add_argument("--tenant-slug", default="nomos-demo")
     parser.add_argument("--tenant-name", default="NOMOS Demo")
     args = parser.parse_args()
