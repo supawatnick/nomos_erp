@@ -56,6 +56,30 @@ def account_create(payload:AccountIn,request:Request,authorization:str|None=Head
     c=_ctx(request,authorization,x_tenant_id)
     with _engine().begin() as db: value=create_account(db,context=c,**payload.model_dump())
     return {"data":{"id":str(value)}}
+@router.get("/periods")
+def periods(request:Request,authorization:str|None=Header(default=None),x_tenant_id:str|None=Header(default=None,alias="X-Tenant-ID")):
+    c=_ctx(request,authorization,x_tenant_id);require_permission(c,"accounting.read")
+    with _engine().connect() as db: rows=db.execute(text("SELECT id,legal_entity_id,period_key,start_date,end_date,status FROM fiscal_periods WHERE tenant_id=:t ORDER BY start_date DESC"),{"t":c.tenant_id}).mappings().all()
+    return {"data":[{**dict(x),"id":str(x["id"]),"legal_entity_id":str(x["legal_entity_id"]),"start_date":x["start_date"].isoformat(),"end_date":x["end_date"].isoformat()} for x in rows]}
+
+@router.get("/journals")
+def journals(request:Request,authorization:str|None=Header(default=None),x_tenant_id:str|None=Header(default=None,alias="X-Tenant-ID")):
+    c=_ctx(request,authorization,x_tenant_id);require_permission(c,"accounting.read")
+    with _engine().connect() as db: rows=db.execute(text("SELECT id,journal_number,legal_entity_id,posting_date,currency_code,description,status,source_type,source_number FROM finance_journals WHERE tenant_id=:t ORDER BY posting_date DESC,created_at DESC LIMIT 200"),{"t":c.tenant_id}).mappings().all()
+    return {"data":[{**dict(x),"id":str(x["id"]),"legal_entity_id":str(x["legal_entity_id"]),"posting_date":x["posting_date"].isoformat()} for x in rows]}
+
+@router.get("/invoices")
+def invoices(request:Request,authorization:str|None=Header(default=None),x_tenant_id:str|None=Header(default=None,alias="X-Tenant-ID")):
+    c=_ctx(request,authorization,x_tenant_id);require_permission(c,"accounting.read")
+    with _engine().connect() as db: rows=db.execute(text("SELECT id,invoice_number,invoice_type,partner_id,invoice_date,due_date,currency_code,total_amount,open_amount,status FROM finance_invoices WHERE tenant_id=:t ORDER BY invoice_date DESC,created_at DESC LIMIT 200"),{"t":c.tenant_id}).mappings().all()
+    return {"data":[{**dict(x),"id":str(x["id"]),"partner_id":str(x["partner_id"]),"invoice_date":x["invoice_date"].isoformat(),"due_date":x["due_date"].isoformat(),"total_amount":str(x["total_amount"]),"open_amount":str(x["open_amount"])} for x in rows]}
+
+@router.get("/payments")
+def payments(request:Request,authorization:str|None=Header(default=None),x_tenant_id:str|None=Header(default=None,alias="X-Tenant-ID")):
+    c=_ctx(request,authorization,x_tenant_id);require_permission(c,"accounting.read")
+    with _engine().connect() as db: rows=db.execute(text("SELECT id,payment_number,payment_type,partner_id,payment_date,currency_code,amount,unallocated_amount,status FROM finance_payments WHERE tenant_id=:t ORDER BY payment_date DESC,created_at DESC LIMIT 200"),{"t":c.tenant_id}).mappings().all()
+    return {"data":[{**dict(x),"id":str(x["id"]),"partner_id":str(x["partner_id"]),"payment_date":x["payment_date"].isoformat(),"amount":str(x["amount"]),"unallocated_amount":str(x["unallocated_amount"])} for x in rows]}
+
 @router.post("/periods",status_code=201)
 def period_create(payload:PeriodIn,request:Request,authorization:str|None=Header(default=None),x_tenant_id:str|None=Header(default=None,alias="X-Tenant-ID")):
     c=_ctx(request,authorization,x_tenant_id)
