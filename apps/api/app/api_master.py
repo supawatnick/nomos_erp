@@ -1,5 +1,6 @@
 import base64
 import json
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request, status
@@ -10,6 +11,8 @@ from sqlalchemy.exc import IntegrityError
 from app.application.auth import resolve_session
 from app.application.catalog import CatalogRepository, archive_product, create_product
 from app.application.master_data import (
+    add_product_barcode,
+    add_product_unit,
     archive_master,
     create_category,
     create_location,
@@ -51,6 +54,18 @@ class LocationCreate(BaseModel):
     name: str = Field(min_length=1, max_length=160)
     location_type: str = "STORAGE"
     allow_stock: bool = True
+
+
+class ProductUnitCreate(BaseModel):
+    unit_id: UUID
+    factor_to_base: Decimal
+    is_purchase_unit: bool = False
+    is_sales_unit: bool = False
+
+
+class BarcodeCreate(BaseModel):
+    barcode: str = Field(min_length=1, max_length=128)
+    product_unit_id: UUID | None = None
 
 
 class ProductCreate(BaseModel):
@@ -337,3 +352,39 @@ def master_archive(
     if not changed:
         raise HTTPException(status_code=404, detail={"code": "RESOURCE_NOT_FOUND"})
     return {"data": {"id": str(resource_id), "status": "ARCHIVED"}, "meta": {"request_id": str(context.request_id)}}
+
+
+@router.post("/products/{product_id}/units", status_code=201)
+def product_unit_create(
+    product_id: UUID, payload: ProductUnitCreate, request: Request,
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> dict[str, object]:
+    context = trusted_context(request, authorization, x_tenant_id)
+    engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+    try:
+        with engine.begin() as connection:
+            resource_id = add_product_unit(
+                connection, context=context, product_id=product_id, **payload.model_dump()
+            )
+    except (IntegrityError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail={"code": "VALIDATION_FAILED"}) from exc
+    return {"data": {"id": str(resource_id)}, "meta": {"request_id": str(context.request_id)}}
+
+
+@router.post("/products/{product_id}/barcodes", status_code=201)
+def product_barcode_create(
+    product_id: UUID, payload: BarcodeCreate, request: Request,
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> dict[str, object]:
+    context = trusted_context(request, authorization, x_tenant_id)
+    engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+    try:
+        with engine.begin() as connection:
+            resource_id = add_product_barcode(
+                connection, context=context, product_id=product_id, **payload.model_dump()
+            )
+    except IntegrityError as exc:
+        raise HTTPException(status_code=409, detail={"code": "DUPLICATE_RESOURCE"}) from exc
+    return {"data": {"id": str(resource_id)}, "meta": {"request_id": str(context.request_id)}}
