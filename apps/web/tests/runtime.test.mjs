@@ -12,7 +12,7 @@ async function html(path){
 }
 
 test("critical ERP routes render through deployed Web",async()=>{
- for(const path of ["/","/login","/inventory","/procurement","/sales","/finance","/approvals","/reports"]){await html(path)}
+ for(const path of ["/","/login","/admin","/approvals","/categories","/crm","/finance","/imports","/inventory","/inventory/adjust","/inventory/counts","/inventory/imports","/inventory/issue","/inventory/movements","/inventory/operations","/inventory/receive","/inventory/reorder","/inventory/reports","/inventory/stock","/inventory/transfer","/locations","/partners","/procurement","/products","/reports","/sales","/settings/subscription","/units","/warehouses"]){await html(path)}
 });
 
 test("health and readiness are healthy through configured origin",async()=>{
