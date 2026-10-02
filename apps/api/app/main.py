@@ -5,6 +5,7 @@ import structlog
 from fastapi import FastAPI, Header, HTTPException, Request, Response, status
 from pydantic import BaseModel
 
+from app.api_master import router as master_router
 from app.application.auth import create_session, resolve_session, revoke_session
 from app.core.config import get_settings
 from app.core.database import database_ready
@@ -14,7 +15,8 @@ structlog.configure(
     processors=[structlog.processors.TimeStamper(fmt="iso"), structlog.processors.JSONRenderer()]
 )
 log = structlog.get_logger()
-app = FastAPI(title=settings.app_name, version="0.2.0")
+app = FastAPI(title=settings.app_name, version="0.3.0")
+app.include_router(master_router)
 
 
 class LoginRequest(BaseModel):
