@@ -9,7 +9,8 @@ export function authHeaders(): AuthHeaders | null {
 }
 
 export function newIdempotencyKey(kind:string):string {
-  return `web-${kind.toLowerCase()}-${crypto.randomUUID()}`;
+  const id=typeof crypto.randomUUID==="function"?crypto.randomUUID():Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,"0")).join("");
+  return `web-${kind.toLowerCase()}-${id}`;
 }
 
 export async function apiError(response:Response):Promise<string>{
