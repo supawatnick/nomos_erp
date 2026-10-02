@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy import create_engine, text
-from test_phase12_finance import fctx, setup_finance
+from test_phase12_finance import setup_finance
 
 from app.application.finance import create_account
 from app.application.finance_reports import reconcile_subledgers, trial_balance
@@ -36,15 +36,15 @@ def test_ar_invoice_receipt_allocation_reconciles_to_gl(engine):
               (id,tenant_id,document_type,legal_entity_id,branch_id,period_key,prefix,next_value,padding,updated_at)
               VALUES (gen_random_uuid(),:t,:d,:e,NULL,'2026-10',:p,1,6,now())"""),{"t":tenant,"d":dtype,"e":entity,"p":prefix})
         invoice=post_invoice(db,context=context,invoice_type="CUSTOMER",legal_entity_id=entity,partner_id=partner,
-          invoice_date=date(2026,10,2),due_date=date(2026,10,31),currency_code="THB",net_amount=Decimal("100"),
-          tax_amount=Decimal("7"),control_account_id=ar,counter_account_id=revenue,tax_account_id=tax,period_key="2026-10",
+          invoice_date=date(2026,10,2),due_date=date(2026,10,31),currency_code="THB",net_amount=Decimal(100),
+          tax_amount=Decimal(7),control_account_id=ar,counter_account_id=revenue,tax_account_id=tax,period_key="2026-10",
           source_type="SALES_ORDER",source_id=uuid4(),source_number="SO-1",idempotency_key="cinv-1")
         receipt=post_payment(db,context=context,payment_type="RECEIPT",legal_entity_id=entity,partner_id=partner,
-          payment_date=date(2026,10,3),currency_code="THB",amount=Decimal("107"),cash_account_id=cash,
+          payment_date=date(2026,10,3),currency_code="THB",amount=Decimal(107),cash_account_id=cash,
           control_account_id=ar,period_key="2026-10",idempotency_key="rct-1")
         before=reconcile_subledgers(db,context=context,legal_entity_id=entity,ar_control_account_id=ar,ap_control_account_id=tax)
-        assert before["ar_difference"]==0 and before["ar_subledger"]==Decimal("107")
-        allocate_payment(db,context=context,payment_id=receipt,invoice_id=invoice,amount=Decimal("107"))
+        assert before["ar_difference"]==0 and before["ar_subledger"]==Decimal(107)
+        allocate_payment(db,context=context,payment_id=receipt,invoice_id=invoice,amount=Decimal(107))
         after=reconcile_subledgers(db,context=context,legal_entity_id=entity,ar_control_account_id=ar,ap_control_account_id=tax)
         assert after["ar_difference"]==0 and after["ar_subledger"]==0
         assert len(trial_balance(db,context=context,legal_entity_id=entity))>=4
