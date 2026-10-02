@@ -1,12 +1,14 @@
 # DevOps Skill
 
-- Local development via Docker Compose.
-- Production services should be containerized and stateless where practical.
-- Configuration through environment variables; secrets through secret management.
-- CI: lint, type check, unit/integration tests, dependency scan, container build.
-- Database migrations run as controlled deployment steps.
+- Local dependencies run through Docker Compose.
+- Production application services are containerized/stateless where practical.
+- Configuration uses environment variables; secrets use secret management.
+- CI gates: lint, type check, unit/integration tests, migration check, secret/dependency scan and container build when containers exist.
+- Database migrations are controlled deployment steps.
 - Health/readiness endpoints are required.
-- Structured logs with request/correlation IDs.
-- Metrics and tracing should cover API latency/errors, DB, workers, LINE webhook processing and business failures.
+- Structured logs carry request/correlation IDs.
+- Metrics/tracing cover API, DB, workers, LINE and critical business failures.
 - Backups require periodic restore tests.
-- Kubernetes manifests/Helm can be introduced when operational scale justifies it.
+- Prefer managed PostgreSQL in production where appropriate.
+- Use backward-compatible deployment/migration patterns.
+- Introduce Kubernetes only when operational needs justify it; business logic must not depend on Kubernetes.

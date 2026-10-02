@@ -6,18 +6,22 @@ Testing pyramid:
 3. DB/repository integration tests
 4. API tests
 5. LINE webhook/adapter tests
-6. Selected end-to-end Web flows
+6. Selected Web end-to-end flows
+7. Security/concurrency tests
 
 Critical scenarios:
-- tenant isolation
-- RBAC
-- duplicate requests/webhooks
+- tenant isolation by guessed IDs
+- RBAC allow/deny matrix
+- duplicate idempotency request
+- conflicting idempotency payload
+- duplicate LINE webhook
 - concurrent stock issue
 - insufficient stock
-- transfers
-- reversals/adjustments
-- approval authorization
+- atomic transfer
+- reversal/adjustment
+- approval authorization and self-approval rule
+- approved request with changed stock before execution
 - webhook signature failure
-- audit creation
+- audit/outbox creation
 
-Business-critical inventory code is not complete without tests.
+Tests must assert no partial writes after failure. Business-critical inventory code is not complete without these tests.

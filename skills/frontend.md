@@ -2,10 +2,14 @@
 
 When working on the Web ERP:
 - Use Next.js + TypeScript.
-- Optimize core workflows for desktop and mobile.
+- Treat API as the source of business truth.
+- Do not duplicate server authorization/domain rules as security controls.
 - Build reusable tables, forms, dialogs, status badges and confirmation components.
-- Treat API as source of business truth; do not duplicate authorization/business rules in UI.
-- Clearly show warehouse, SKU, quantity, unit and transaction status.
-- Destructive or stock-changing actions require explicit confirmation.
-- Provide useful loading, empty and error states.
-- Design for Thai and English localization.
+- Always make tenant, warehouse, SKU, quantity, unit and transaction state clear.
+- Stock-changing actions require an explicit normalized review/confirmation step.
+- Approval state must be visible and refreshable.
+- Provide loading, empty, error and retry states.
+- Avoid optimistic UI that claims a stock mutation succeeded before server confirmation.
+- Use stable API error codes for friendly localized messages.
+- Design for Thai and English.
+- Support keyboard/accessibility basics and responsive operator workflows.

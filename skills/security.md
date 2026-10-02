@@ -1,14 +1,19 @@
 # Security Skill
 
-For every feature, threat-model tenant leakage, privilege escalation, replay/duplicate requests, injection and sensitive-data exposure.
+Threat-model every feature for tenant leakage, broken object authorization, privilege escalation, replay/duplicate mutation, race conditions, injection and sensitive-data exposure.
 
 Rules:
 - deny by default
 - authorize server-side
-- validate ownership and tenant on referenced IDs
+- validate tenant/ownership for referenced IDs
 - verify external webhook authenticity
+- use secure session/token handling
+- apply CSRF controls when cookies authenticate state changes
+- rate-limit exposed authentication/webhook surfaces
 - redact secrets from logs
-- use secure dependencies and pinned/managed versions
-- audit critical mutations
-- never expose arbitrary SQL execution to LINE/AI
-- AI output is untrusted input until validated by deterministic application logic
+- use least-privilege service/database credentials
+- scan dependencies and secrets in CI
+- audit critical mutations/security changes
+- never expose arbitrary SQL/file/system tools to LINE/AI
+- AI output is untrusted input until deterministic validation
+- production data is not casually copied into development
