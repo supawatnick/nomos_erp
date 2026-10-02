@@ -1,7 +1,9 @@
 """Provision the temporary passwordless NOMOS demo administrator."""
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
+
 from sqlalchemy import create_engine, text
+
 from app.core.config import get_settings
 
 TENANT_ID = UUID("11111111-1111-4111-8111-111111111111")
