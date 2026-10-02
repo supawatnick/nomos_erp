@@ -52,7 +52,7 @@ def create_stock_count(connection: Connection, *, context: RequestContext, legal
 def record_count(connection: Connection, *, context: RequestContext, count_id: UUID,
                  lines: list[tuple[UUID, Decimal]]) -> None:
     require_permission(context,"inventory.count")
-    row=connection.execute(text("""
+    row: UUID = connection.execute(text("""
         SELECT status FROM stock_counts WHERE tenant_id=:tenant AND id=:id FOR UPDATE
     """),{"tenant":context.tenant_id,"id":count_id}).mappings().first()
     if not row:
@@ -62,7 +62,7 @@ def record_count(connection: Connection, *, context: RequestContext, count_id: U
     if not lines:
         raise InventoryOperationsError("count lines required")
     for line_id,quantity in lines:
-        if quantity < 0 or -quantity.as_tuple().exponent > 8:
+        exponent = quantity.as_tuple().exponent\n        if quantity < 0 or not isinstance(exponent, int) or max(0, -exponent) > 8:
             raise InventoryOperationsError("invalid counted quantity")
         changed=connection.execute(text("""
             UPDATE stock_count_lines SET counted_quantity=:quantity
@@ -70,7 +70,7 @@ def record_count(connection: Connection, *, context: RequestContext, count_id: U
         """),{"quantity":quantity,"tenant":context.tenant_id,"count":count_id,"line":line_id}).rowcount
         if not changed:
             raise InventoryOperationsError("count line not found")
-    missing=connection.execute(text("""
+    missing: int = connection.execute(text("""
         SELECT count(*) FROM stock_count_lines
         WHERE tenant_id=:tenant AND stock_count_id=:count AND counted_quantity IS NULL
     """),{"tenant":context.tenant_id,"count":count_id}).scalar_one()
@@ -124,9 +124,9 @@ def upsert_reorder_policy(connection: Connection, *, context: RequestContext, pr
     require_permission(context,"inventory.reorder.manage")
     if reorder_point < 0 or target_quantity < reorder_point:
         raise InventoryOperationsError("target quantity must be at least reorder point")
-    if max(-reorder_point.as_tuple().exponent,-target_quantity.as_tuple().exponent)>8:
+    point_exp, target_exp = reorder_point.as_tuple().exponent, target_quantity.as_tuple().exponent\n    if not isinstance(point_exp, int) or not isinstance(target_exp, int) or max(max(0,-point_exp),max(0,-target_exp))>8:
         raise InventoryOperationsError("reorder quantity precision exceeds 8 decimals")
-    valid=connection.execute(text("""
+    valid: bool = bool(connection.execute(text("""
         SELECT EXISTS(
           SELECT 1 FROM products p JOIN warehouse_locations l ON l.tenant_id=p.tenant_id
           WHERE p.tenant_id=:tenant AND p.id=:product AND l.id=:location
