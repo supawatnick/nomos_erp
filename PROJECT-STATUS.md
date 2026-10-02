@@ -226,6 +226,7 @@ Primary objective: begin Phase 10 Approval & commercial controls from the clean 
 - [x] Sales Web operations surface.
 - [x] Phase 9 review — docs/PHASE-9-REVIEW.md.
 - [x] Implementation acceptance CI 36998921435 PASS on 65415e9369354c378f359cd40b5b07dc50283302.
+- [x] Final closure CI 37000090937 PASS on 9a5872695d492b8c669ddf47957cbeebe85d7bfe; full-history Gitleaks CLI scan PASS.
 
 ## Current blockers
 - No Phase 9 functional blocker remains.
@@ -245,6 +246,7 @@ Apply approval controls to purchasing, sales discount/credit exceptions, invento
 ## Latest activity
 - Phase 9 Sales & CRM implementation complete.
 - Implementation acceptance GitHub Actions run 36998921435 PASS.
+- Final Phase 9 closure GitHub Actions run 37000090937 PASS, including full-history Gitleaks CLI scan.
 - QT revisions/expiry/acceptance and QT -> SO traceability completed.
 - Reservation available-stock semantics, release, partial delivery/return and Inventory integration completed.
 - Sales order timeline and Web operations surface completed.
