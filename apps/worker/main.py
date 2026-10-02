@@ -1,8 +1,5 @@
 import logging
-
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
-    logging.info('{"event":"worker_started","service":"nomos-worker"}')
-
-if __name__ == "__main__":
-    main()
+    logging.info('NOMOS worker foundation ready')
+if __name__ == '__main__': main()
