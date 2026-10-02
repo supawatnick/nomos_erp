@@ -3,11 +3,11 @@
 > Operational handoff/source of truth. Read after AGENTS.md before every work session.
 
 ## Current stage
-Phase 0–7 Remediation Closure
+Phase 8 Procurement & Purchasing Closure
 
-Overall status: **PHASE 0–7 REMEDIATION PASS — READY FOR PHASE 8**
+Overall status: **PHASE 8 PASS — READY FOR PHASE 9**
 
-Primary objective: begin Phase 8 Procurement & Purchasing from the clean Phase 0–7 baseline on host 73 only, consuming Phase 7 supplier identity and Phase 4 Inventory contracts.
+Primary objective: begin Phase 9 Sales & CRM commercial documents from the clean Phase 8 baseline on host 73 only.
 
 ## Completed
 
@@ -200,20 +200,35 @@ Primary objective: begin Phase 8 Procurement & Purchasing from the clean Phase 0
 
 ## Phase 0–7 remediation closure\n- [x] R-01 Users/Roles/Audit Web/API gap closed.\n- [x] R-02 PRODUCT/OPENING_STOCK import lifecycle gap closed.\n- [x] R-03 stale project/phase status reconciled.\n- [x] R-04 remediation Web surfaces checked against WEB-DESIGN-CONTRACT.\n- [x] Implementation acceptance CI 36986274423 PASS (47 PostgreSQL/API tests plus full Web/security/dependency gate).\n- [x] Documentation reconciliation CI 36986587027 PASS.\n- [x] Latest remediation permission-description migration CI 36986937445 PASS on c32a0e234cf31540e0c0275d25f93c90479b35ab.\n\n## Current blockers\n- No Phase 0–7 functional blocker remains for Phase 8.\n- Two preserved pre-sync stashes on host 73 remain an operational housekeeping item; do not drop them until reviewed.
 
+## Phase 8 — Procurement & Purchasing
+- [x] Purchase Request lifecycle with dedicated commands and server-side numbering.
+- [x] RFQ supplier invitation, line-level quotation comparison and award.
+- [x] Purchase Order lifecycle with approval fingerprint/version and server-side numbering.
+- [x] Goods Receipt with partial receipt and atomic Inventory RECEIVE orchestration.
+- [x] Purchase Return with cumulative received/returned validation and Inventory ISSUE orchestration.
+- [x] Procurement receipt/return idempotency and stock/order reconciliation.
+- [x] Procurement Web operations surface.
+- [x] Phase 8 review — docs/PHASE-8-REVIEW.md.
+- [x] Implementation acceptance CI 36996602994 PASS on 7ddc082348b14f4397559dca2cfed02f6f7f5235.
+
+## Current blockers
+- No Phase 8 functional blocker remains.
+- Preserved host 73 pre-sync stashes remain housekeeping only; do not apply/drop without review.
+
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Phase 8 procurement documents
-Implement PR and RFQ/supplier quotation comparison using Phase 7 supplier identities.
+### NEXT 1 — Phase 9 contract read and clean-baseline verification
+Read the Phase 9 Sales & CRM commercial-document contracts and verify host 73 is synced to the final Phase 8 documentation commit with a clean working tree.
 
-### NEXT 2 — Phase 8 purchase orders and receipts
-Implement PO lifecycle, partial Goods Receipt/Return orchestration through Phase 4 Inventory contracts.
+### NEXT 2 — Phase 9 Quotation
+Implement quotation revision/acceptance lifecycle without physical stock effects.
 
-### NEXT 3 — Phase 8 reconciliation
-Verify procurement status, remaining quantities, idempotent receipt/return, tenant isolation, audit and Web workflows.
+### NEXT 3 — Phase 9 Sales Order and Inventory boundary
+Implement Sales Order lifecycle and explicit Inventory reservation/delivery orchestration according to MASTER-PLAN.
 
-## Latest activity\n- Phase 0–7 remediation implemented: administration surfaces, staged imports, Opening Stock permission correction and acceptance tests.\n- Remediation implementation CI 36986274423 PASS.
-- Phase 3 Catalog and Warehouse implementation completed.
-- Phase 3 PostgreSQL/API/Web/security regression gate PASS in GitHub Actions run 36974731001.
-- Phase 3 review recorded in docs/PHASE-3-REVIEW.md.
-- Four-core ERP plan/framework/skills revision and Phase 0–3 alignment patch completed without invalidating Phase 0–3 acceptance.
-- Phase 4 Inventory Engine implemented with concurrency/idempotency/reconciliation acceptance and cross-core source contracts.\n- Phase 5 Inventory Web ERP implemented with operational stock/movement views and idempotent posting workflows.\n- Phase 6 Inventory Operations completed; Internal Inventory ERP MVP (Phases 0–6) is complete.\n- Phase 7 Business Partners & CRM Foundation completed.\n- Immediate next executable action is Phase 8 Procurement & Purchasing on host 73.
+## Latest activity
+- Phase 8 Procurement & Purchasing implementation complete.
+- Final implementation acceptance GitHub Actions run 36996602994 PASS.
+- Goods Receipt and Purchase Return are routed through Inventory with atomic state advancement and idempotent stock effects.
+- RFQ line comparison, dedicated PR commands, server-side PR/RFQ/PO numbering and Procurement Web surface completed.
+- Immediate next executable action is Phase 9 contract read after final Phase 8 documentation CI is green.
