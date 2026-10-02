@@ -3,8 +3,8 @@ from time import perf_counter
 
 import pytest
 from sqlalchemy import create_engine
-from test_phase12_finance import setup_finance
 from test_phase4_inventory import StockLine, post_inventory, seed
+from test_phase12_finance import setup_finance
 
 from app.application.hardening import reconciliation_snapshot
 from app.core.config import get_settings
@@ -40,21 +40,21 @@ def test_reconciliation_read_smoke_p95_under_pilot_target(engine):
 
 
 def test_concurrent_inventory_never_oversells(engine):
-    tenant,entity,product,unit,warehouse,source=seed(engine)
+    tenant,entity,product,unit,_,source=seed(engine)
     with engine.begin() as db:
         location=db.exec_driver_sql("SELECT id FROM locations WHERE tenant_id=%s LIMIT 1",(tenant,)).scalar_one()
     post_inventory(engine,tenant,entity,"RECEIVE",[StockLine(product,unit,location,None,"5")],source,"phase15-load-seed")
     def issue(key):
         try:
             return post_inventory(engine,tenant,entity,"ISSUE",[StockLine(product,unit,location,None,"4")],source,key)
-        except Exception:
+        except ValueError:
             return None
     with ThreadPoolExecutor(max_workers=2) as pool: results=list(pool.map(issue,["phase15-c1","phase15-c2"]))
     assert sum(x is not None for x in results)==1
 
 
 def test_finance_setup_still_balanced_under_hardening(engine):
-    tenant,entity,*_=setup_finance(engine)
+    tenant,*_=setup_finance(engine)
     with engine.begin() as db:
         snap=reconciliation_snapshot(db,tenant_id=tenant)
         assert snap["healthy"] is True
