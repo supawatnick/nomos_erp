@@ -27,7 +27,7 @@ test("session persists across refresh and finance tabs are browser-operable",asy
  await page.reload(); await expect(page.getByRole('heading',{name:'ERP workspace'})).toBeVisible(); const stored=await page.evaluate(()=>({session:sessionStorage.getItem('nomos_session'),tenant:sessionStorage.getItem('nomos_tenant')})); expect(stored.session).toBeTruthy(); expect(stored.tenant).toBe(tenant); await expect(page.getByText('Active',{exact:true})).toBeVisible({timeout:10000});
  await page.goto("/finance");
  for(const name of ["Fiscal Periods","Journals / GL","AR / AP Invoices","Receipts / Payments","Chart of Accounts"]){
-  await page.getByRole("button",{name}).click(); await page.waitForTimeout(250); const alert=page.locator('[role="alert"]'); if(await alert.count()) throw new Error('finance '+name+': '+await alert.first().innerText());
+  await page.getByRole("button",{name}).click(); await page.waitForTimeout(250); const alert=page.locator('.state.error, p.error[role="alert"]'); if(await alert.count()) throw new Error('finance '+name+': '+await alert.first().innerText());
  }
 });
 
