@@ -68,4 +68,4 @@ def test_lead_lifecycle_opportunity_activity_and_no_sales_documents(engine):
         assert db.execute(text("SELECT count(*) FROM crm_activities WHERE tenant_id=:t AND id=:id"),{"t":tenant,"id":activity}).scalar_one()==1
         # Phase 7 has CRM intent only; no QT/SO/PO tables are introduced by migration 0007.
         tables=set(db.execute(text("SELECT tablename FROM pg_tables WHERE schemaname='public'")).scalars())
-        assert "quotations" not in tables and "sales_orders" not in tables and "purchase_orders" not in tables
+        assert "quotations" not in tables and "sales_orders" not in tables\n        # Purchase Orders are introduced by Phase 8; Phase 7 itself still creates no commercial documents.\n        assert db.execute(text("SELECT count(*) FROM purchase_orders WHERE tenant_id=:t"), {"t": tenant}).scalar_one() == 0
