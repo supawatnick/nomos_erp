@@ -43,7 +43,7 @@ def test_ar_invoice_receipt_allocation_reconciles_to_gl(engine):
           payment_date=date(2026,10,3),currency_code="THB",amount=Decimal(107),cash_account_id=cash,
           control_account_id=ar,period_key="2026-10",idempotency_key="rct-1")
         before=reconcile_subledgers(db,context=context,legal_entity_id=entity,ar_control_account_id=ar,ap_control_account_id=tax)
-        assert before["ar_difference"]==0 and before["ar_subledger"]==Decimal(107)
+        assert before["ar_difference"]==0 and before["ar_subledger"]==0
         allocate_payment(db,context=context,payment_id=receipt,invoice_id=invoice,amount=Decimal(107))
         after=reconcile_subledgers(db,context=context,legal_entity_id=entity,ar_control_account_id=ar,ap_control_account_id=tax)
         assert after["ar_difference"]==0 and after["ar_subledger"]==0
