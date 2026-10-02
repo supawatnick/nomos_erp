@@ -81,6 +81,7 @@ Deletion: archive.
 Constraints:
 - UNIQUE(tenant_id,id)
 - UNIQUE(tenant_id,legal_entity_id,code)
+- UNIQUE(tenant_id,legal_entity_id,id) to support composite organization references
 - composite FK (tenant_id,legal_entity_id) -> legal_entities(tenant_id,id)
 Indexes: tenant_id,legal_entity_id,status
 Deletion: archive.
@@ -243,7 +244,12 @@ Constraints: UNIQUE(tenant_id,id), UNIQUE(tenant_id,barcode); same-tenant produc
 - status VARCHAR(24) NOT NULL
 - archived_at TIMESTAMPTZ
 - created_at/updated_at TIMESTAMPTZ NOT NULL
-Constraints: UNIQUE(tenant_id,id), UNIQUE(tenant_id,code); same-tenant legal entity/branch FKs. If branch exists it must belong to legal_entity; domain plus composite relationship constraint/migration design must enforce this.
+Constraints:
+- UNIQUE(tenant_id,id)
+- UNIQUE(tenant_id,code)
+- composite FK (tenant_id,legal_entity_id) -> legal_entities(tenant_id,id)
+- when branch_id is present, composite FK (tenant_id,legal_entity_id,branch_id) -> branches(tenant_id,legal_entity_id,id), guaranteeing branch and warehouse share the same legal entity
+- branch_id NULL means legal-entity-level warehouse, not an unknown branch.
 Indexes: tenant_id,branch_id,status.
 
 ### warehouse_locations
