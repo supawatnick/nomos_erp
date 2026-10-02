@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import UTC, datetime
-from secrets import token_bytes, token_urlsafe
+from secrets import token_bytes
 from uuid import uuid4
 
 from sqlalchemy import create_engine, text
