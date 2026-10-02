@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -118,3 +119,33 @@ def archive_master(
                     actor_tenant_user_id=context.tenant_user_id, target_type=resource,
                     target_id=resource_id, metadata={})
     return bool(result.rowcount)
+
+
+def add_product_unit(
+    connection: Connection, *, context: RequestContext, product_id: UUID, unit_id: UUID,
+    factor_to_base: Decimal, is_purchase_unit: bool = False, is_sales_unit: bool = False
+) -> UUID:
+    from app.application.catalog import validate_conversion
+    require_permission(context, "product.manage")
+    validate_conversion(factor_to_base)
+    row_id, now = uuid4(), datetime.now(UTC)
+    connection.execute(
+        text("INSERT INTO product_units (id,tenant_id,product_id,unit_id,factor_to_base,is_purchase_unit,is_sales_unit,created_at,updated_at) VALUES (:id,:tenant,:product,:unit,:factor,:purchase,:sales,:now,:now)"),
+        {"id": row_id, "tenant": context.tenant_id, "product": product_id, "unit": unit_id,
+         "factor": factor_to_base, "purchase": is_purchase_unit, "sales": is_sales_unit, "now": now},
+    )
+    return row_id
+
+
+def add_product_barcode(
+    connection: Connection, *, context: RequestContext, product_id: UUID,
+    barcode: str, product_unit_id: UUID | None = None
+) -> UUID:
+    require_permission(context, "product.manage")
+    row_id = uuid4()
+    connection.execute(
+        text("INSERT INTO product_barcodes (id,tenant_id,product_id,product_unit_id,barcode,created_at) VALUES (:id,:tenant,:product,:product_unit,:barcode,:now)"),
+        {"id": row_id, "tenant": context.tenant_id, "product": product_id,
+         "product_unit": product_unit_id, "barcode": barcode, "now": datetime.now(UTC)},
+    )
+    return row_id
