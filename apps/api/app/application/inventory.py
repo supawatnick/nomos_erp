@@ -224,6 +224,10 @@ def post_inventory(
 
 def reverse_inventory(connection: Connection, *, context: RequestContext, transaction_id: UUID, idempotency_key: str, reason: str) -> UUID:
     require_permission(context, "inventory.adjust")
+    fp=hashlib.sha256(f"reverse:{transaction_id}:{reason}".encode()).hexdigest()
+    replay=_claim(connection,context.tenant_id,idempotency_key,fp)
+    if replay:
+        return replay
     original = connection.execute(text("""
         SELECT id,legal_entity_id,branch_id,transaction_type,reversed_by_id FROM inventory_transactions
         WHERE tenant_id=:tenant AND id=:id AND status='POSTED' FOR UPDATE
@@ -232,10 +236,6 @@ def reverse_inventory(connection: Connection, *, context: RequestContext, transa
         raise InventoryError("transaction not found")
     if original["transaction_type"]=="REVERSAL" or original["reversed_by_id"]:
         raise InventoryError("transaction cannot be reversed")
-    fp=hashlib.sha256(f"reverse:{transaction_id}:{reason}".encode()).hexdigest()
-    replay=_claim(connection,context.tenant_id,idempotency_key,fp)
-    if replay:
-        return replay
     rows=connection.execute(text("""
         SELECT product_id,unit_id,location_id,quantity,base_quantity,direction
         FROM inventory_transaction_lines WHERE tenant_id=:tenant AND transaction_id=:id ORDER BY line_no
