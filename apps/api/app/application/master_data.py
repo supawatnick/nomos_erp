@@ -108,10 +108,10 @@ def archive_master(
     table, permission, action = config[resource]
     require_permission(context, permission)
     if resource == "location":
-        has_stock = connection.execute(
+        has_stock: bool = bool(connection.execute(
             text("SELECT EXISTS(SELECT 1 FROM inventory_balances WHERE tenant_id=:tenant AND location_id=:id AND on_hand<>0)"),
             {"tenant": context.tenant_id, "id": resource_id},
-        ).scalar_one()
+        ).scalar_one())
         if has_stock:
             raise ValueError("stock-bearing location cannot be archived")
     if resource == "warehouse":
