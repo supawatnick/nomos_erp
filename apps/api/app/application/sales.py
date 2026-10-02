@@ -99,7 +99,7 @@ def send_quotation(db: Connection, *, context: RequestContext, quotation_id: UUI
         {"t":context.tenant_id,"id":quotation_id}).mappings().first()
     if not row or row["status"]!="DRAFT":
         raise SalesError("quotation must be DRAFT to send")
-    if row["valid_until"] and row["valid_until"] < date.today():
+    if row["valid_until"] and row["valid_until"] < datetime.now(UTC).date():
         raise SalesError("quotation is expired")
     db.execute(text("UPDATE sales_quotations SET status='SENT',version=version+1,updated_at=:now WHERE tenant_id=:t AND id=:id"),
         {"now":datetime.now(UTC),"t":context.tenant_id,"id":quotation_id})
@@ -138,7 +138,7 @@ def accept_quotation(db: Connection, *, context: RequestContext, quotation_id: U
         {"t":context.tenant_id,"id":quotation_id}).mappings().first()
     if not q or q["status"]!="SENT":
         raise SalesError("quotation must be SENT to accept")
-    if q["valid_until"] and q["valid_until"] < date.today():
+    if q["valid_until"] and q["valid_until"] < datetime.now(UTC).date():
         db.execute(text("UPDATE sales_quotations SET status='EXPIRED',updated_at=:now WHERE tenant_id=:t AND id=:id"),
             {"now":datetime.now(UTC),"t":context.tenant_id,"id":quotation_id})
         raise SalesError("quotation is expired")
