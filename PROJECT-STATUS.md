@@ -5,9 +5,9 @@
 ## Current stage
 Phase 14 Commercial SaaS Layer
 
-Overall status: **PHASE 12 PASS — PHASE 13 DEFERRED BY PRODUCT DECISION — PHASE 14 IN PROGRESS**
+Overall status: **PHASE 14 PASS — PHASE 13 DEFERRED / NOT PASS — READY FOR PHASE 15**
 
-Primary objective: implement Phase 14 Commercial SaaS Layer from the clean Phase 12 Core ERP V1 baseline; Phase 13 LINE remains deferred and is not PASS.
+Primary objective: close Phase 14 on host 73, then begin Phase 15 Commercial Hardening; Phase 13 LINE remains deferred and is not PASS.
 
 ## Completed
 
@@ -266,13 +266,15 @@ Primary objective: implement Phase 14 Commercial SaaS Layer from the clean Phase
 - [ ] Phase 13 must be resumed and pass its own exit gate before claiming Integrated Channel ERP V1.
 
 ## Phase 14 — Commercial SaaS Layer
-- [ ] IN PROGRESS — onboarding/provisioning.
-- [ ] Plans, subscriptions and entitlements separated from RBAC.
-- [ ] Limits and server-side entitlement enforcement.
-- [ ] Trial/suspend/cancel/export/retention lifecycle.
-- [ ] Repeatable tenant provisioning acceptance.
-- [ ] Web/API/tenant-isolation/audit acceptance.
-- [ ] Detailed review: docs/PHASE-14-REVIEW.md.
+- [x] Repeatable tenant commercial provisioning.
+- [x] Plans, subscriptions and entitlements separated from RBAC.
+- [x] Server-side entitlement/usage limits.
+- [x] Trial/active/suspend/cancel lifecycle.
+- [x] Tenant export request and retention metadata lifecycle.
+- [x] Commercial API + Plan & Subscription Web workspace; API 0.14.0.
+- [x] PostgreSQL acceptance: 78 tests at implementation gate.
+- [x] Phase 14 implementation CI 37013634604 PASS.
+- [x] Detailed review: docs/PHASE-14-REVIEW.md.
 
 ## Current blockers
 - No Phase 12 functional blocker remains.
@@ -280,11 +282,11 @@ Primary objective: implement Phase 14 Commercial SaaS Layer from the clean Phase
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Phase 14 Commercial SaaS foundation
-Implement plans, subscriptions, entitlements and repeatable onboarding/provisioning with entitlement checks explicitly separate from RBAC.
+### NEXT 1 — Final Phase 14 closure
+Verify documentation CI, synchronize host 73 through Alembic 0019, run full PostgreSQL/API suite and confirm clean 0/0 Git divergence with historical stashes preserved.
 
-### NEXT 2 — Commercial lifecycle
-Implement limits plus trial/suspend/cancel/export/retention state transitions and audit evidence.
+### NEXT 2 — Phase 15 contract read
+Read security, operations, observability, backup/restore, migration and cross-core reconciliation contracts from the verified Phase 14 baseline.
 
-### NEXT 3 — Phase 14 acceptance
-Prove tenant isolation, entitlement/RBAC separation, repeatable provisioning, lifecycle enforcement, Web/API gates, CI and host 73 runtime sync. Phase 13 remains DEFERRED and must not be marked PASS.
+### NEXT 3 — Commercial hardening
+Execute security review, load/concurrency acceptance, backup/PITR/restore drills, observability/alerts, upgrade/migration runbooks, incident readiness and end-to-end four-core reconciliation. Phase 13 remains DEFERRED / NOT PASS.
