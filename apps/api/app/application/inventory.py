@@ -45,8 +45,15 @@ PERMISSION = {
 }
 
 
+def _scale(value: Decimal) -> int:
+    exponent = value.as_tuple().exponent
+    if not isinstance(exponent, int):
+        return 99
+    return max(0, -exponent)
+
+
 def _decimal(value: Decimal) -> Decimal:
-    if value <= 0 or value.as_tuple().exponent < -8:
+    if value <= 0 or _scale(value) > 8:
         raise InventoryError("quantity must be positive with at most 8 decimal places")
     return value
 
