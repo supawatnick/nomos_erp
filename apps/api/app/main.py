@@ -11,6 +11,7 @@ from app.api_imports import router as imports_router
 from app.api_inventory import router as inventory_router
 from app.api_inventory_operations import router as inventory_operations_router
 from app.api_master import router as master_router
+from app.api_procurement import router as procurement_router
 from app.application.auth import create_session, resolve_session, revoke_session
 from app.core.config import get_settings
 from app.core.database import database_ready
@@ -20,13 +21,14 @@ structlog.configure(
     processors=[structlog.processors.TimeStamper(fmt="iso"), structlog.processors.JSONRenderer()]
 )
 log = structlog.get_logger()
-app = FastAPI(title=settings.app_name, version="0.7.1")
+app = FastAPI(title=settings.app_name, version="0.8.0")
 app.include_router(admin_router)
 app.include_router(master_router)
 app.include_router(imports_router)
 app.include_router(inventory_router)
 app.include_router(inventory_operations_router)
 app.include_router(crm_router)
+app.include_router(procurement_router)
 
 
 class LoginRequest(BaseModel):
