@@ -17,6 +17,11 @@ from app.domain.security import require_permission
 router = APIRouter(prefix="/api/v1/approvals", tags=["approvals"])
 
 
+class PolicyStepIn(BaseModel):
+    name: str = Field(min_length=1, max_length=160)
+    required_permission: str = Field(min_length=1, max_length=120)
+
+
 class PolicyIn(BaseModel):
     code: str = Field(min_length=1, max_length=80)
     name: str = Field(min_length=1, max_length=160)
@@ -25,6 +30,7 @@ class PolicyIn(BaseModel):
     steps_required: int = Field(default=1, ge=1)
     prohibit_self_approval: bool = True
     expires_after_hours: int | None = Field(default=None, ge=1)
+    steps: list[PolicyStepIn] | None = None
 
 
 class DecisionIn(BaseModel):
