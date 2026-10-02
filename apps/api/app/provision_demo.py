@@ -31,6 +31,26 @@ def main() -> None:
         db.execute(text("""INSERT INTO role_permissions(tenant_id,role_id,permission_id,created_at)
         SELECT :t,:r,p.id,:now FROM permissions p WHERE NOT EXISTS
         (SELECT 1 FROM role_permissions rp WHERE rp.tenant_id=:t AND rp.role_id=:r AND rp.permission_id=p.id)"""),{"t":TENANT_ID,"r":role,"now":now})
+        entity=db.execute(text("SELECT id FROM legal_entities WHERE tenant_id=:t AND code='DEMO'"),{"t":TENANT_ID}).scalar_one_or_none()
+        if entity is None:
+            entity=uuid4(); db.execute(text("""INSERT INTO legal_entities(id,tenant_id,code,legal_name,country_code,base_currency,timezone,status,created_at,updated_at)
+            VALUES(:id,:t,'DEMO','NOMOS Demo Co.','TH','THB','Asia/Bangkok','ACTIVE',:now,:now)"""),{"id":entity,"t":TENANT_ID,"now":now})
+        unit=db.execute(text("SELECT id FROM units WHERE tenant_id=:t AND code='EA'"),{"t":TENANT_ID}).scalar_one_or_none()
+        if unit is None:
+            unit=uuid4(); db.execute(text("""INSERT INTO units(id,tenant_id,code,name,symbol,precision,status,created_at,updated_at)
+            VALUES(:id,:t,'EA','Each','ea',0,'ACTIVE',:now,:now)"""),{"id":unit,"t":TENANT_ID,"now":now})
+        warehouse=db.execute(text("SELECT id FROM warehouses WHERE tenant_id=:t AND code='DEMO-WH'"),{"t":TENANT_ID}).scalar_one_or_none()
+        if warehouse is None:
+            warehouse=uuid4(); db.execute(text("""INSERT INTO warehouses(id,tenant_id,legal_entity_id,branch_id,code,name,status,created_at,updated_at)
+            VALUES(:id,:t,:e,NULL,'DEMO-WH','Demo Warehouse','ACTIVE',:now,:now)"""),{"id":warehouse,"t":TENANT_ID,"e":entity,"now":now})
+        location=db.execute(text("SELECT id FROM warehouse_locations WHERE tenant_id=:t AND warehouse_id=:w AND code='MAIN'"),{"t":TENANT_ID,"w":warehouse}).scalar_one_or_none()
+        if location is None:
+            location=uuid4(); db.execute(text("""INSERT INTO warehouse_locations(id,tenant_id,warehouse_id,parent_id,code,name,location_type,allow_stock,status,created_at,updated_at)
+            VALUES(:id,:t,:w,NULL,'MAIN','Main Storage','STORAGE',true,'ACTIVE',:now,:now)"""),{"id":location,"t":TENANT_ID,"w":warehouse,"now":now})
+        product=db.execute(text("SELECT id FROM products WHERE tenant_id=:t AND sku='DEMO-E2E'"),{"t":TENANT_ID}).scalar_one_or_none()
+        if product is None:
+            product=uuid4(); db.execute(text("""INSERT INTO products(id,tenant_id,sku,name,product_type,base_unit_id,category_id,tracking_type,description,status,archived_at,created_at,updated_at)
+            VALUES(:id,:t,'DEMO-E2E','Demo E2E Stock Item','STOCK',:u,NULL,'NONE','Browser acceptance fixture','ACTIVE',NULL,:now,:now)"""),{"id":product,"t":TENANT_ID,"u":unit,"now":now})
         n=db.execute(text("SELECT count(*) FROM role_permissions WHERE tenant_id=:t AND role_id=:r"),{"t":TENANT_ID,"r":role}).scalar_one()
     print(f"TENANT_ID={TENANT_ID} EMAIL={EMAIL} PERMISSIONS={n}")
 if __name__=="__main__": main()
