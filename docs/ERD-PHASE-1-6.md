@@ -525,19 +525,25 @@ Every index is justified by an access path; avoid blindly indexing every FK. Pha
 
 Use EXPLAIN/production telemetry before adding speculative reporting indexes.
 
-## 11. Future compatibility
+## 11. Four-core compatibility contract
 
-Phase 1–6 does not yet implement partners, Purchasing, Sales, reservations, lots/serial instances or Accounting. The schema preserves:
-- organization IDs on business documents
-- product tracking policy
-- location-level stock
-- explicit currency/cost fields without making cost authoritative for accounting
-- reference hooks to source documents
-- outbox for downstream Accounting/LINE
-- document numbering scopes
-- composite tenant integrity
+Phase 1–6 does not implement Partners/CRM, Procurement, Sales/CRM or Finance, but the accepted foundation MUST remain compatible with them.
 
-Future stock dimensions will require a controlled expansion of balance/ledger keys. Do not encode future lot/serial values into JSON as a shortcut.
+Preserved integration seams:
+- organization/legal_entity IDs on business documents;
+- product tracking and exact unit conversion;
+- location-level physical stock authority;
+- explicit currency/cost fields without making Inventory cost authoritative for Finance;
+- source reference hooks plus request correlation;
+- transactional outbox/idempotency for cross-core effects;
+- document numbering scopes usable by QT/SO/PR/RFQ/PO/GR/invoices/payments/journals;
+- composite tenant integrity and future legal-entity scope.
+
+Future entity direction is defined in DATA-MODEL.md and FOUR-CORE-ERP-REVISION.md. In particular, later schema must support CRM lead/opportunity/activity, quotation revision/acceptance, RFQ/supplier responses, Sales/Procurement progress, Finance invoices/AR/AP/payments/journals/fiscal periods/tax/FX and a unique source-posting registry.
+
+Phase 4 Inventory contracts must preserve stable source_type/source_id/source_number and idempotency/correlation so Goods Receipt, Delivery, Return and Finance valuation can integrate without direct cross-module table mutation.
+
+Future stock dimensions require controlled expansion of ledger/balance keys. Do not encode lot/serial or future commercial/accounting core fields into JSON as a shortcut.
 
 ## 12. Migration-order dependency
 
@@ -566,6 +572,6 @@ PASS requires:
 - [x] Idempotency/outbox/audit persistence defined.
 - [x] Number allocation persistence defined.
 - [x] Import traceability persistence defined.
-- [x] Future Purchasing/Sales/Accounting/LINE compatibility reviewed at architectural level.
+- [x] Four-core Procurement/Sales-CRM/Finance compatibility reviewed and explicit integration seams reserved.
 
 Open implementation detail intentionally deferred to migrations: exact PostgreSQL enum-vs-CHECK implementation, RLS policy DDL, and physical index tuning. These do not alter domain ownership or keys.
