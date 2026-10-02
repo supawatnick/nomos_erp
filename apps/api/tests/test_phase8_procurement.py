@@ -30,8 +30,18 @@ def engine():
         value.dispose()
 
 
-def procurement_ctx(tenant):
+def procurement_ctx(engine, tenant):
     base = ctx(tenant)
+    now = __import__("datetime").datetime.now(__import__("datetime").UTC)
+    with engine.begin() as db:
+        db.execute(text("""INSERT INTO users
+            (id,email,password_hash,display_name,status,created_at,updated_at)
+            VALUES (:id,:email,'test','Phase 8 User','ACTIVE',:now,:now)"""),
+            {"id": base.actor_user_id, "email": f"p8-{base.actor_user_id.hex}@example.test", "now": now})
+        db.execute(text("""INSERT INTO tenant_users
+            (id,tenant_id,user_id,status,joined_at,created_at,updated_at)
+            VALUES (:id,:tenant,:user,'ACTIVE',:now,:now,:now)"""),
+            {"id": base.tenant_user_id, "tenant": tenant, "user": base.actor_user_id, "now": now})
     permissions = base.permissions | frozenset({
         "partner.manage", "procurement.read", "purchase_request.manage", "rfq.manage",
         "purchase_order.manage", "purchase_order.approve", "purchase_order.override", "procurement.receive",
@@ -49,7 +59,7 @@ def _master_ids(engine, tenant):
 
 def test_pr_rfq_quote_award_has_no_inventory_side_effect(engine):
     tenant, *_ = seed(engine)
-    context = procurement_ctx(tenant)
+    context = procurement_ctx(engine, tenant)
     product_id, unit_id = _master_ids(engine, tenant)
     with engine.begin() as db:
         s1 = create_partner(db, context=context, code="SUP-"+uuid4().hex[:8], name="Supplier A", is_customer=False, is_supplier=True)
@@ -78,7 +88,7 @@ def test_pr_rfq_quote_award_has_no_inventory_side_effect(engine):
 def test_cross_tenant_supplier_cannot_be_invited(engine):
     t1, *_ = seed(engine)
     t2, *_ = seed(engine)
-    c1, c2 = procurement_ctx(t1), procurement_ctx(t2)
+    c1, c2 = procurement_ctx(engine, t1), procurement_ctx(engine, t2)
     with engine.begin() as db:
         foreign_supplier = create_partner(db, context=c2, code="FOREIGN-"+uuid4().hex[:8],
             name="Foreign Supplier", is_customer=False, is_supplier=True)
@@ -88,7 +98,7 @@ def test_cross_tenant_supplier_cannot_be_invited(engine):
 
 def test_rfq_cannot_award_unanswered_supplier(engine):
     tenant, *_ = seed(engine)
-    context = procurement_ctx(tenant)
+    context = procurement_ctx(engine, tenant)
     with engine.begin() as db:
         s1 = create_partner(db, context=context, code="S1-"+uuid4().hex[:8], name="Supplier A", is_customer=False, is_supplier=True)
         s2 = create_partner(db, context=context, code="S2-"+uuid4().hex[:8], name="Supplier B", is_customer=False, is_supplier=True)
@@ -101,7 +111,7 @@ def test_rfq_cannot_award_unanswered_supplier(engine):
 
 def test_pr_invalid_transition_rejected(engine):
     tenant, *_ = seed(engine)
-    context = procurement_ctx(tenant)
+    context = procurement_ctx(engine, tenant)
     product_id, unit_id = _master_ids(engine, tenant)
     with engine.begin() as db:
         pr = create_purchase_request(db, context=context, request_number="PR-"+uuid4().hex[:8],
