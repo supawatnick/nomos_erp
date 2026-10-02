@@ -86,7 +86,16 @@ They are **not disposable**. Review contents and purpose before any apply/pop/dr
 
 ## Last verified state
 
-On 2026-10-02, SSH port 22 was reachable; the known ED25519 host key matched; login with `ntap_office_demo_ed25519` succeeded; repo and remote were verified. Local `main` was 35 commits behind and 0 ahead, then updated with `git merge --ff-only origin/main` to `1e86130cabf33b44156e0e666bfb97b7bebd83ac`. Working tree was clean and all three stashes remained preserved.
+Reverified on 2026-10-02 during the Phase 0–8 repository audit:
+- SSH login to `nomos-erp` succeeded with `/root/.ssh/ntap_office_demo_ed25519`.
+- Repository `/root/nomos_erp` matched `origin/main` with 0 ahead / 0 behind before the audit documentation commit and had a clean working tree.
+- The three historical stashes remained preserved and untouched.
+- PostgreSQL and Redis Compose services were healthy.
+- Runtime PostgreSQL was upgraded from stale Alembic `0009_phase8_procurement` to `0012_phase9_sales (head)`.
+- Full PostgreSQL pytest run with the host 73 API environment: **61 passed**.
+- GitHub `main` gate immediately before this audit documentation update was run `37000290630`: **SUCCESS**, including Ruff, mypy, migrations, PostgreSQL tests, dependency audits, Web lint/typecheck/tests/build and full-history Gitleaks.
+
+After any documentation/code commit, fast-forward host 73 again before beginning implementation so runtime HEAD equals `origin/main`.
 
 ## Rule for future sessions
 
