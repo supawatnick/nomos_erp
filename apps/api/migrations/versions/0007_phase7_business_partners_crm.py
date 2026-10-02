@@ -1,7 +1,7 @@
 from alembic import op
 import sqlalchemy as sa
 
-revision="0007_phase7_business_partners_crm"
+revision="0007_phase7_crm"
 down_revision="0006_phase6_inventory_operations"
 
 
