@@ -79,10 +79,10 @@ def upgrade():
         sa.Column("sales_order_id",sa.Uuid(),nullable=False),sa.Column("sales_order_line_id",sa.Uuid(),nullable=False),
         sa.Column("location_id",sa.Uuid(),nullable=False),sa.Column("quantity",sa.Numeric(24,8),nullable=False),
         sa.Column("status",sa.String(16),nullable=False,server_default="ACTIVE"),sa.Column("created_at",sa.DateTime(timezone=True),nullable=False),
-        sa.Column("released_at",sa.DateTime(timezone=True)),sa.ForeignKeyConstraint(["tenant_id","sales_order_id"],["sales_orders.tenant_id","sales_orders.id"]),
+        sa.Column("released_at",sa.DateTime(timezone=True)),sa.Column("fulfilled_quantity",sa.Numeric(24,8),nullable=False,server_default="0"),sa.ForeignKeyConstraint(["tenant_id","sales_order_id"],["sales_orders.tenant_id","sales_orders.id"]),
         sa.ForeignKeyConstraint(["tenant_id","sales_order_line_id"],["sales_order_lines.tenant_id","sales_order_lines.id"]),
         sa.ForeignKeyConstraint(["tenant_id","location_id"],["warehouse_locations.tenant_id","warehouse_locations.id"]),
-        sa.UniqueConstraint("tenant_id","id"),sa.CheckConstraint("quantity > 0",name="ck_sales_reservation_quantity"),
+        sa.UniqueConstraint("tenant_id","id"),sa.CheckConstraint("quantity > 0 AND fulfilled_quantity >= 0 AND fulfilled_quantity <= quantity",name="ck_sales_reservation_quantity"),
         sa.CheckConstraint("status IN ('ACTIVE','RELEASED','FULFILLED')",name="ck_sales_reservation_status"))
     op.create_table("sales_deliveries",
         sa.Column("id",sa.Uuid(),primary_key=True),sa.Column("tenant_id",sa.Uuid(),nullable=False),
