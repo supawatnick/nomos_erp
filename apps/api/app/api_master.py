@@ -198,7 +198,7 @@ def master_summary(
     require_permission(context, "product.read")
     engine = create_engine(get_settings().database_url, pool_pre_ping=True)
     with engine.connect() as connection:
-        counts = {}
+        counts: dict[str, int] = {}
         for table in ("products", "categories", "units", "warehouses", "warehouse_locations"):
             counts[table] = connection.execute(
                 text(f"SELECT count(*) FROM {table} WHERE tenant_id=:tenant AND status='ACTIVE'"),
