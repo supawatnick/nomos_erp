@@ -94,3 +94,38 @@ def write_outbox(
         },
     )
     return event_id
+
+
+def claim_idempotency(
+    connection: Connection,
+    *,
+    tenant_id: UUID,
+    scope: str,
+    key: str,
+    fingerprint: str,
+    expires_at: datetime,
+) -> tuple[bool, bool]:
+    existing = connection.execute(
+        text("SELECT request_fingerprint FROM idempotency_keys WHERE tenant_id=:tenant AND scope=:scope AND idempotency_key=:key"),
+        {"tenant": tenant_id, "scope": scope, "key": key},
+    ).scalar_one_or_none()
+    if existing is not None:
+        return False, existing == fingerprint
+    now = datetime.now(UTC)
+    connection.execute(
+        text("""
+            INSERT INTO idempotency_keys
+            (id,tenant_id,scope,idempotency_key,request_fingerprint,status,expires_at,created_at,updated_at)
+            VALUES (:id,:tenant,:scope,:key,:fingerprint,'IN_PROGRESS',:expires,:now,:now)
+        """),
+        {
+            "id": uuid4(),
+            "tenant": tenant_id,
+            "scope": scope,
+            "key": key,
+            "fingerprint": fingerprint,
+            "expires": expires_at,
+            "now": now,
+        },
+    )
+    return True, True
