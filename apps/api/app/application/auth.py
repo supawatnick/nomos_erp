@@ -5,6 +5,8 @@ from fastapi import HTTPException, status
 from sqlalchemy import create_engine, text
 
 from app.core.config import get_settings
+from app.infrastructure.platform import write_audit
+
 from app.domain.security import (
     RequestContext,
     hash_session_token,
@@ -73,24 +75,53 @@ def create_session(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail={"code": "AUTHENTICATION_REQUIRED"},
             )
+        session_id = __import__("uuid").uuid4()
         connection.execute(
             text("INSERT INTO sessions (id,user_id,token_hash,expires_at,created_at) VALUES (:id,:user,:hash,:expires,:now)"),
             {
-                "id": __import__("uuid").uuid4(),
+                "id": session_id,
                 "user": row["user_id"],
                 "hash": hash_session_token(token),
                 "expires": now + timedelta(hours=12),
                 "now": now,
             },
         )
+        write_audit(
+            connection,
+            tenant_id=tenant_id,
+            request_id=request_id,
+            action="auth.session.created",
+            actor_user_id=row["user_id"],
+            actor_tenant_user_id=row["tenant_user_id"],
+            target_type="session",
+            target_id=session_id,
+            metadata={},
+        )
     return token, resolve_session(token, tenant_id, request_id)
 
 
-def revoke_session(token: str) -> bool:
+def revoke_session(token: str, context: RequestContext) -> bool:
     engine = create_engine(get_settings().database_url, pool_pre_ping=True)
     with engine.begin() as connection:
-        result = connection.execute(
-            text("UPDATE sessions SET revoked_at=:now WHERE token_hash=:hash AND revoked_at IS NULL"),
-            {"now": datetime.now(UTC), "hash": hash_session_token(token)},
+        session_id = connection.execute(
+            text("SELECT id FROM sessions WHERE token_hash=:hash AND revoked_at IS NULL"),
+            {"hash": hash_session_token(token)},
+        ).scalar_one_or_none()
+        if session_id is None:
+            return False
+        connection.execute(
+            text("UPDATE sessions SET revoked_at=:now WHERE id=:id"),
+            {"now": datetime.now(UTC), "id": session_id},
         )
-    return bool(result.rowcount)
+        write_audit(
+            connection,
+            tenant_id=context.tenant_id,
+            request_id=context.request_id,
+            action="auth.session.revoked",
+            actor_user_id=context.actor_user_id,
+            actor_tenant_user_id=context.tenant_user_id,
+            target_type="session",
+            target_id=session_id,
+            metadata={},
+        )
+    return True
