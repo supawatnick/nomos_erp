@@ -13,3 +13,7 @@ target-version = "py312"
 [tool.mypy]
 python_version = "3.12"
 strict = true
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["migrations*","tests*"]
