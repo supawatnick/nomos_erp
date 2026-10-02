@@ -32,6 +32,7 @@ class StockLine:
     location_id: UUID
     quantity: Decimal
     destination_location_id: UUID | None = None
+    adjustment_direction: int | None = None
 
 
 PERMISSION = {
@@ -57,7 +58,7 @@ def _fingerprint(kind: str, legal_entity_id: UUID, branch_id: UUID | None, lines
         "lines": [
             {"product_id":str(x.product_id),"unit_id":str(x.unit_id),"location_id":str(x.location_id),
              "destination_location_id":str(x.destination_location_id) if x.destination_location_id else None,
-             "quantity":format(x.quantity, "f")} for x in lines
+             "adjustment_direction":x.adjustment_direction,"quantity":format(x.quantity, "f")} for x in lines
         ],
     }
     return hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",",":")).encode()).hexdigest()
@@ -161,7 +162,12 @@ def post_inventory(
                 raise InventoryError("transfer destination required")
             effects += [(line,line.location_id,base,-1),(line,destination,base,1)]
         else:
-            direction = -1 if kind=="ISSUE" else 1
+            if kind=="ADJUST":
+                if line.adjustment_direction not in (-1, 1):
+                    raise InventoryError("adjustment_direction must be -1 or 1")
+                direction = line.adjustment_direction
+            else:
+                direction = -1 if kind=="ISSUE" else 1
             effects.append((line,line.location_id,base,direction))
 
     deltas: dict[tuple[UUID,UUID],Decimal] = {}
