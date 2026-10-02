@@ -5,9 +5,9 @@
 ## Current stage
 Phase 15 Commercial Hardening Closure
 
-Overall status: **PHASE 15 CODE/HARDENING PASS — DEPLOYMENT/BROWSER ACCEPTANCE OPEN — PHASE 13 DEFERRED / NOT PASS**
+Overall status: **PHASE 15 PASS INCLUDING DEPLOYMENT/BROWSER ACCEPTANCE — PHASE 13 DEFERRED / NOT PASS**
 
-Primary objective: deploy the existing Web/API runtime on host 73 and prove browser-accessible end-to-end operation before claiming controlled commercial pilot readiness; Phase 13 LINE remains deferred and is not PASS.
+Primary objective: operate the verified browser-accessible ERP runtime at http://10.10.110.73/ and preserve the Phase 15 controlled-pilot baseline; Phase 13 LINE remains deferred and is not PASS.
 
 ## Completed
 
@@ -287,20 +287,20 @@ Primary objective: deploy the existing Web/API runtime on host 73 and prove brow
 - [x] Implementation CI 37017699870 PASS — 82 PostgreSQL/API tests plus full Web/security gate.
 - [x] Host 73 runtime suite 82 passed, clean, 0/0 divergence, stashes preserved.
 - [x] Detailed review: docs/PHASE-15-REVIEW.md.
-- [ ] Controlled commercial pilot readiness is OPEN pending deployed Web/API runtime and browser-accessible acceptance.
+- [x] Controlled commercial pilot readiness excluding deferred LINE: Web/API deployment and browser-accessible acceptance verified.
 
 ## Current blockers
-- **Deployment acceptance gap:** host 73 has no Next.js Web server listening; API processes are localhost-only. Source/build gates passed, but users cannot yet access the ERP Web app from a browser.
-- Phase 15 code/hardening remains green; commercial pilot readiness must not be claimed until browser/runtime acceptance passes.
+- No Web deployment blocker remains: private-network ERP entry point is http://10.10.110.73/.
+- Phase 13 LINE remains intentionally DEFERRED / NOT PASS.
 - Historical host 73 stashes remain preserved housekeeping only.
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Deploy Web/API runtime on host 73
-Run the existing production Web build and one canonical FastAPI service under restartable services. Expose a single browser entry point and proxy /api, /health and /ready to the API.
+### NEXT 1 — Use the deployed ERP
+Private-network entry URL: http://10.10.110.73/. Login and ERP routes are served through the same origin; /api, /health and /ready proxy to the canonical API service.
 
-### NEXT 2 — Browser/runtime acceptance
-Verify from the host network: Web root/login returns successfully, API health/readiness works through the same browser origin, login/API routing is same-origin, and representative Inventory/Purchasing/Sales/Finance/Reports/Subscription pages load without direct DB/Redis exposure being required.
+### NEXT 2 — Operational follow-through
+Use systemd nomos-web.service / nomos-api.service and the Caddy reverse proxy topology documented in docs/HOST-73-RUNBOOK.md. Production public exposure still requires a domain/TLS and deployment-specific network policy.
 
-### NEXT 3 — Close corrected Phase 15 deployment gate
-Record the verified URL, service configuration, restart behavior and browser acceptance in docs/PHASE-15-REVIEW.md and docs/HOST-73-RUNBOOK.md. Only then restore controlled-commercial-pilot readiness wording. Phase 13 remains DEFERRED / NOT PASS.
+### NEXT 3 — Deferred Phase 13
+Resume LINE only by product decision. Keep Phase 13 DEFERRED / NOT PASS until its own acceptance gate passes.
