@@ -90,3 +90,24 @@ The four-core ERP V1 still requires Business Partners/CRM, Procurement/Purchasin
 
 ## Next
 Phase 7 — Business Partners & CRM Foundation.
+
+
+## Phase 0–7 remediation closure addendum
+The 2026-10-02 Phase 0–7 contract audit found that the original Phase 6 acceptance contract also required PRODUCT/master and OPENING_STOCK import lifecycle, which was missing from the initial Phase 6 implementation.
+
+Closure implemented before Phase 8:
+- migration `0008_phase0_7_remediation` adds tenant-scoped staged import batches/rows;
+- PRODUCT and OPENING_STOCK executable import types;
+- upload/stage → validate → preview → explicit commit lifecycle;
+- validation is side-effect free;
+- row-level normalized data and stable validation errors are persisted;
+- PRODUCT commit uses the existing Product application contract;
+- OPENING_STOCK commit calls the Phase 4 Inventory posting contract and never edits balances directly;
+- committed batches are immutable/replay-safe;
+- tenant isolation, permission, audit and outbox behavior are covered by remediation acceptance;
+- Opening Stock authorization was corrected to `inventory.adjust`, matching the Phase 0 authorization/import contracts;
+- `/inventory/imports` exposes the controlled Web preview/commit workflow.
+
+PostgreSQL remediation acceptance proves validation side-effect freedom, Product atomic commit/replay and cross-tenant batch hiding. Existing Phase 4 inventory tests continue to protect ledger/reconciliation behavior.
+
+The gap is tracked and closed by `docs/PHASE-0-7-REMEDIATION.md`.
