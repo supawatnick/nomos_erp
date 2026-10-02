@@ -69,7 +69,7 @@ For Web-dependent phases, acceptance additionally requires:
 - Expanded Finance Web from COA-only to accounts, periods, journals, invoices and payments workspaces.
 - Strengthened Sales workspace hierarchy and operational counts.
 - Web lint/typecheck/build: PASS after remediation; production Web service restarted.
-- **Remaining clean-room blocker:** NOMOS-owned automated browser/Web tests are still absent. Web-dependent phases remain UNVERIFIED until this is corrected and deployed E2E is automated.
+- NOMOS-owned deployed-origin runtime tests now exist and cannot silently pass with zero discovered tests. Host 73 port-80 runtime gate: **3 passed, 0 failed, 0 skipped** covering critical routes, health/readiness, demo login/session context, and authenticated reads across master data + four cores + approvals/reports.\n- The new suite caught and forced fixes for Finance 405 method mismatch and 500 schema mismatch before acceptance.\n- **Remaining clean-room blocker:** full DOM-driving browser tests for interactive create/transition/post/reverse workflows are still required before Web-dependent phases can return to PASS.
 
 ## NEXT ACTIONS
 - **NEXT 1:** repair and acceptance-test authentication/login end-to-end.
