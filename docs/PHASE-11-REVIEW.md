@@ -1,6 +1,6 @@
 # Phase 11 Review — Operational Reporting
 
-Status: **IN PROGRESS**
+Status: **PASS — PHASE 11 COMPLETE**
 
 ## Contract basis
 - docs/MASTER-PLAN.md Phase 11
@@ -9,18 +9,49 @@ Status: **IN PROGRESS**
 - docs/WEB-DESIGN-CONTRACT.md
 - Phase 4–10 domain/review contracts
 
-## Required delivery
-- Tenant-scoped operational reports for Inventory, Procurement, Sales/CRM and management.
-- Explicit allowlisted report catalog; no arbitrary SQL endpoint or client-provided SQL fragments.
-- Bounded date range, row limit and deterministic ordering.
-- Server-side CSV and XLSX export from the same bounded report definitions.
-- report.read for report data and report.export in addition for export.
-- Safe spreadsheet output, including formula-injection protection.
-- Web reporting workspace with loading/empty/error/export states.
-- Acceptance proving tenant isolation, permission denial, bounds and export safety.
+## Delivered
+- Explicit allowlisted report catalog; client input selects a known report code and never supplies SQL or SQL fragments.
+- Inventory stock-position report.
+- Procurement PO status/quantity/amount tracking report.
+- Sales order status/reservation/fulfillment tracking report.
+- CRM pipeline status/count/value report.
+- Cross-module management exception/volume summary.
+- Tenant predicate is present in every report query.
+- Default 30-day window where time filtering applies; maximum range 366 days.
+- Default data limit 200 and hard maximum/export limit 2,000 rows.
+- Deterministic ordering for row reports.
+- Server-side CSV and XLSX exports use the same bounded report service.
+- Spreadsheet formula-injection protection prefixes cells beginning with =, +, - or @.
+- report.read is required for report data; report.export is additionally required for export.
+- API version advanced to 0.11.0.
+- Web Operational Reports workspace supports report selection, loading/empty/error states and CSV/XLSX download.
+- Existing Phase 6 Inventory report remains compatible; Phase 11 is the cross-module reporting boundary.
 
-## Existing baseline
-Phase 6 already provides an Inventory operational summary and client-side CSV. Phase 11 generalizes reporting across implemented operational modules and moves export generation to the server.
+## Persistence/dependencies
+- `0015_phase11_reporting` activates `report.read` and `report.export`.
+- `openpyxl 3.1.5` is used for server-generated XLSX with typed development stubs.
+
+## Acceptance
+`apps/api/tests/test_phase11_reporting.py` proves:
+- unknown/arbitrary report strings are rejected rather than executed;
+- date range and row limits are bounded;
+- missing report permission is denied;
+- management reporting is tenant isolated;
+- CSV and XLSX formula-like cells are neutralized.
+
+## CI evidence
+Phase 11 implementation gate: GitHub Actions run `37007447637` — **SUCCESS**.
+- Ruff: PASS.
+- mypy: PASS.
+- Alembic through 0015: PASS.
+- PostgreSQL/API pytest: **70 passed**.
+- pip-audit: PASS.
+- npm audit high: PASS.
+- Web lint/typecheck/tests/build: PASS.
+- full-history Gitleaks: PASS.
 
 ## Exit gate
-Phase 11 is not PASS until common operational/pipeline/order-tracking reports are available without arbitrary SQL, exports are bounded and safe, and full API/Web/security/dependency CI is green.
+**PASS.** Common Inventory, Procurement, Sales/CRM and management reports are available through bounded, tenant-scoped, allowlisted queries and safe server exports. No arbitrary SQL reporting surface is exposed and request bounds protect OLTP from unbounded report scans.
+
+## Handoff
+Phase 11 is complete. Phase 12 Finance & Accounting may begin only after final documentation CI and host 73 synchronization are green.
