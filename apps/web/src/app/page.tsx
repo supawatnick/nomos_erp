@@ -1,1 +1,1 @@
-export default function Home() { return <main><p className="eyebrow">NOMOS ERP</p><h1>Engineering Foundation</h1><p>Phase 1 foundation is running.</p></main>; }
+export default function Home() { return <main><h1>NOMOS ERP</h1><p>Engineering foundation is ready.</p></main>; }
