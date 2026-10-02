@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
@@ -10,8 +10,15 @@ from test_phase8_procurement import _seed_sequence
 from app.application.crm import create_partner
 from app.application.inventory import StockLine, post_inventory
 from app.application.sales import (
-    SalesError, accept_quotation, confirm_order, create_quotation, post_delivery,
-    post_sales_return, reserve_order, revise_quotation, send_quotation,
+    SalesError,
+    accept_quotation,
+    confirm_order,
+    create_quotation,
+    post_delivery,
+    post_sales_return,
+    reserve_order,
+    revise_quotation,
+    send_quotation,
 )
 from app.core.config import get_settings
 
@@ -39,7 +46,7 @@ def sales_ctx(engine,tenant):
 def _qt(db,context,tenant,entity,branch,unit,product,customer,qty=Decimal(10)):
     _seed_sequence(db,tenant,"QT","QT-",entity=entity,branch=branch)
     return create_quotation(db,context=context,legal_entity_id=entity,branch_id=branch,customer_id=customer,
-        valid_until=date.today()+timedelta(days=7),period_key="2026",
+        valid_until=datetime.now(UTC).date()+timedelta(days=7),period_key="2026",
         lines=[{"product_id":product,"unit_id":unit,"quantity":qty,"unit_price":Decimal("100.25"),"discount_amount":Decimal("2.50"),"tax_amount":Decimal("7.00")}])
 
 
@@ -51,7 +58,7 @@ def test_quotation_revision_acceptance_preserves_snapshot_and_has_no_stock_effec
         before=db.execute(text("SELECT count(*) FROM inventory_transactions WHERE tenant_id=:t"),{"t":tenant}).scalar_one()
         qid=_qt(db,context,tenant,entity,branch,unit,product,customer)
         send_quotation(db,context=context,quotation_id=qid)
-        revise_quotation(db,context=context,quotation_id=qid,valid_until=date.today()+timedelta(days=10),
+        revise_quotation(db,context=context,quotation_id=qid,valid_until=datetime.now(UTC).date()+timedelta(days=10),
             lines=[{"product_id":product,"unit_id":unit,"quantity":Decimal(8),"unit_price":Decimal(110)}])
         send_quotation(db,context=context,quotation_id=qid)
         so=accept_quotation(db,context=context,quotation_id=qid,accepted_by="Customer Buyer")
@@ -70,7 +77,7 @@ def test_expired_quotation_cannot_be_accepted(engine):
         customer=create_partner(db,context=context,code="EXP-"+uuid4().hex[:8],name="Expired Customer",is_customer=True,is_supplier=False)
         _seed_sequence(db,tenant,"QT","QT-E-",entity=entity,branch=branch)
         qid=create_quotation(db,context=context,legal_entity_id=entity,branch_id=branch,customer_id=customer,
-            valid_until=date.today()-timedelta(days=1),period_key="2026",
+            valid_until=datetime.now(UTC).date()-timedelta(days=1),period_key="2026",
             lines=[{"product_id":product,"unit_id":unit,"quantity":Decimal(1),"unit_price":Decimal(1)}])
         with pytest.raises(SalesError,match="expired"):send_quotation(db,context=context,quotation_id=qid)
 
