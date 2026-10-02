@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
 type Product = {id:string;sku:string;name:string;product_type:string;tracking_type:string;status:string};
@@ -30,10 +31,10 @@ export default function ProductsPage(){
     const body=await response.json() as {data:Product[];meta:Meta};
     setItems(body.data);setNext(body.meta.next_cursor);setCursor(nextCursor);setLoading(false);
   }
-  useEffect(()=>{void load(null);},[]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{queueMicrotask(()=>void load(null));},[]); // eslint-disable-line react-hooks/exhaustive-deps
   function submit(event:FormEvent){event.preventDefault();void load(null)}
   return <main className="erp-main">
-    <div className="page-head"><div><p className="eyebrow">MASTER DATA</p><h1>Products</h1><p>Tenant-scoped product catalog, SKU and tracking policy.</p></div><a className="button" href="/">Overview</a></div>
+    <div className="page-head"><div><p className="eyebrow">MASTER DATA</p><h1>Products</h1><p>Tenant-scoped product catalog, SKU and tracking policy.</p></div><Link className="button" href="/">Overview</Link></div>
     <form className="filterbar" onSubmit={submit}><label>Search<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="SKU or product name"/></label><label>Status<select value={status} onChange={e=>setStatus(e.target.value)}><option>ACTIVE</option><option>ARCHIVED</option></select></label><label>Sort<select value={sort} onChange={e=>setSort(e.target.value)}><option value="id">Created</option><option value="sku">SKU</option><option value="name">Name</option><option value="updated_at">Updated</option></select></label><button className="button" type="submit">Search</button></form>
     {error&&<div className="state error" role="alert">{error}</div>}
     {loading?<div className="state">Loading…</div>:items.length===0&&!error?<div className="state">No products found.</div>:<div className="table-wrap"><table><thead><tr><th>SKU</th><th>Name</th><th>Type</th><th>Tracking</th><th>Status</th></tr></thead><tbody>{items.map(p=><tr key={p.id}><td className="mono">{p.sku}</td><td>{p.name}</td><td>{p.product_type}</td><td>{p.tracking_type}</td><td><span className="badge">{p.status}</span></td></tr>)}</tbody></table></div>}
