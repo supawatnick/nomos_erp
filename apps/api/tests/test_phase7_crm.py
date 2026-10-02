@@ -17,6 +17,7 @@ from app.application.crm import (
 )
 from app.core.config import get_settings
 
+
 @pytest.fixture
 def engine():
     url=get_settings().database_url
