@@ -9,7 +9,7 @@ export default function LoginPage(){
  const router=useRouter();
  const [email,setEmail]=useState(DEMO_EMAIL),[tenant,setTenant]=useState(DEMO_TENANT);
  const [message,setMessage]=useState(""),[busy,setBusy]=useState(false);
- useEffect(()=>{if(sessionStorage.getItem("nomos_session"))setMessage("มีเซสชันอยู่แล้ว — สามารถเข้า Workspace ได้");},[]);
+ useEffect(()=>{queueMicrotask(()=>{if(sessionStorage.getItem("nomos_session"))setMessage("มีเซสชันอยู่แล้ว — สามารถเข้า Workspace ได้");});},[]);
  async function submit(e:FormEvent){e.preventDefault();setBusy(true);setMessage("กำลังเข้าสู่ระบบ…");
   try{
    const r=await fetch("/api/v1/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password:"",tenant_id:tenant})});
