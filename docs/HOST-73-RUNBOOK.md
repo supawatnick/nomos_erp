@@ -86,16 +86,18 @@ They are **not disposable**. Review contents and purpose before any apply/pop/dr
 
 ## Last verified state
 
-Reverified on 2026-10-02 during the Phase 0–8 repository audit:
-- SSH login to `nomos-erp` succeeded with `/root/.ssh/ntap_office_demo_ed25519`.
-- Repository `/root/nomos_erp` matched `origin/main` with 0 ahead / 0 behind before the audit documentation commit and had a clean working tree.
+Reverified on 2026-10-02 at the Phase 11 final documentation/runtime closure:
+- SSH login to `nomos-erp` succeeded from host 72 using `/root/.ssh/ntap_office_demo_ed25519` with `IdentitiesOnly=yes`.
+- Repository `/root/nomos_erp` was fast-forwarded to final Phase 11 documentation commit `2fb48d7aa7c9cf4406cc3b9195607fc66e26b22f`.
+- Repository matched `origin/main`: **0 ahead / 0 behind**, with a clean working tree.
 - The three historical stashes remained preserved and untouched.
-- PostgreSQL and Redis Compose services were healthy.
-- Runtime PostgreSQL was upgraded from stale Alembic `0009_phase8_procurement` to `0012_phase9_sales (head)`.
-- Full PostgreSQL pytest run with the host 73 API environment: **61 passed**.
-- GitHub `main` gate immediately before this audit documentation update was run `37000290630`: **SUCCESS**, including Ruff, mypy, migrations, PostgreSQL tests, dependency audits, Web lint/typecheck/tests/build and full-history Gitleaks.
+- Runtime dependencies were synchronized from `apps/api/requirements.txt`.
+- Runtime PostgreSQL was upgraded through Alembic `0015_phase11_reporting (head)`.
+- Full PostgreSQL/API suite on host 73 with the API environment: **70 passed**.
+- Final Phase 11 documentation CI run `37007719034`: **SUCCESS**, including Ruff, mypy, Alembic, PostgreSQL tests, pip-audit, npm audit high, Web lint/typecheck/tests/build and full-history Gitleaks.
+- Phase 11 is therefore runtime-synchronized and closed; Phase 12 may start from this baseline.
 
-After any documentation/code commit, fast-forward host 73 again before beginning implementation so runtime HEAD equals `origin/main`.
+After any later documentation/code commit, fast-forward host 73 again before implementation so runtime HEAD equals `origin/main`.
 
 ## Rule for future sessions
 
