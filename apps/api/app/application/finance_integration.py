@@ -41,7 +41,7 @@ def post_inventory_valuation(db: Connection, *, context: RequestContext, invento
     existing=db.execute(text("SELECT journal_entry_id FROM inventory_valuation_entries WHERE tenant_id=:t AND inventory_transaction_id=:id"),
                         {"t":context.tenant_id,"id":inventory_transaction_id}).scalar_one_or_none()
     if existing: return existing
-    tx=db.execute(text("""SELECT id,legal_entity_id,transaction_number,transaction_type,status FROM inventory_transactions
+    tx=db.execute(text("""SELECT id,legal_entity_id,COALESCE(source_number,reference,id::text) source_number,transaction_type,status FROM inventory_transactions
       WHERE tenant_id=:t AND id=:id"""),{"t":context.tenant_id,"id":inventory_transaction_id}).mappings().first()
     if not tx or tx["status"]!="POSTED": raise FinanceError("inventory source is not posted")
     rule=db.execute(text("""SELECT debit_account_id,credit_account_id FROM finance_posting_rules
@@ -57,7 +57,7 @@ def post_inventory_valuation(db: Connection, *, context: RequestContext, invento
       {"t":context.tenant_id,"e":tx["legal_entity_id"],"id":inventory_transaction_id,"date":posting_date}).scalar_one())
     if amount<=0: raise FinanceError("inventory valuation amount is zero or cost missing")
     journal=post_journal(db,context=context,legal_entity_id=tx["legal_entity_id"],posting_date=posting_date,
-      currency_code="THB",description=f"Inventory valuation {tx['transaction_number']}",source_module="INVENTORY",
+      currency_code="THB",description=f"Inventory valuation {tx['source_number']}",source_module="INVENTORY",
       source_type="INVENTORY_"+tx["transaction_type"],source_id=inventory_transaction_id,source_number=tx["transaction_number"],
       source_effect="VALUATION",idempotency_key=idempotency_key,period_key=period_key,
       lines=[{"account_id":rule["debit_account_id"],"debit":amount},{"account_id":rule["credit_account_id"],"credit":amount}])
