@@ -115,17 +115,39 @@ def request_create(payload: PRIn, request: Request, authorization: str | None = 
     return {"data": {"id": str(rid)}, "meta": {"request_id": str(context.request_id)}}
 
 
-@router.post("/requests/{request_id}/transition/{new_status}")
-def request_transition(request_id: UUID, new_status: str, request: Request,
-                       authorization: str | None = Header(default=None),
-                       x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
+def _request_command(request_id: UUID, status: str, request: Request,
+                     authorization: str | None, x_tenant_id: str | None):
     context = _ctx(request, authorization, x_tenant_id)
     try:
         with _engine().begin() as db:
-            transition_purchase_request(db, context=context, request_id=request_id, status=new_status.upper())
+            transition_purchase_request(db, context=context, request_id=request_id, status=status)
     except ProcurementError as exc:
         raise HTTPException(409, detail={"code": "INVALID_DOCUMENT_STATE", "message": str(exc)}) from exc
-    return {"data": {"id": str(request_id), "status": new_status.upper()}}
+    return {"data": {"id": str(request_id), "status": status}}
+
+
+@router.post("/requests/{request_id}/submit")
+def request_submit(request_id: UUID, request: Request, authorization: str | None = Header(default=None),
+                   x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
+    return _request_command(request_id, "PENDING_APPROVAL", request, authorization, x_tenant_id)
+
+
+@router.post("/requests/{request_id}/approve")
+def request_approve(request_id: UUID, request: Request, authorization: str | None = Header(default=None),
+                    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
+    return _request_command(request_id, "APPROVED", request, authorization, x_tenant_id)
+
+
+@router.post("/requests/{request_id}/reject")
+def request_reject(request_id: UUID, request: Request, authorization: str | None = Header(default=None),
+                   x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
+    return _request_command(request_id, "REJECTED", request, authorization, x_tenant_id)
+
+
+@router.post("/requests/{request_id}/cancel")
+def request_cancel(request_id: UUID, request: Request, authorization: str | None = Header(default=None),
+                   x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
+    return _request_command(request_id, "CANCELLED", request, authorization, x_tenant_id)
 
 
 @router.get("/rfqs")
