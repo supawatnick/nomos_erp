@@ -96,7 +96,7 @@ Before implementing a module, read the relevant file under docs/ and skill under
 ## Planning source of truth
 
 - `docs/MASTER-PLAN.md` is the authoritative phase/release plan.
-- Phase 0 architecture contracts include `docs/DOMAIN.md`, `docs/DATA-MODEL.md`, `docs/DOCUMENT-LIFECYCLE.md`, `docs/AUTHORIZATION.md`, `docs/ACCOUNTING-BOUNDARY.md`, `docs/MODULES.md`, `docs/NUMBERING.md`, `docs/ERROR-CODES.md`, and `docs/OPERATIONS.md`.
+- Phase 0 architecture contracts include `docs/DOMAIN.md`, `docs/DATA-MODEL.md`, `docs/ERD-PHASE-1-6.md`, `docs/DOCUMENT-LIFECYCLE.md`, `docs/AUTHORIZATION.md`, `docs/AUTHORIZATION-MATRIX.md`, `docs/INVENTORY-EXECUTION.md`, `docs/API-AUDIT-CONTRACT.md`, `docs/ACCOUNTING-BOUNDARY.md`, `docs/MODULES.md`, `docs/NUMBERING.md`, `docs/ERROR-CODES.md`, and `docs/OPERATIONS.md`.
 - Do not start a later implementation phase merely because its UI is understood; satisfy the prior phase exit gate first.
 
 
