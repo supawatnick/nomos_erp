@@ -39,6 +39,16 @@ When instructions conflict, use this order:
 - If a required capability is missing on a target host, install or configure it on the target host, not on host 72.
 - Any exception to this rule requires explicit user approval.
 
+## Mandatory pre-work procedure
+
+Before starting any NOMOS ERP task, read this `AGENTS.md` first and follow it as the project operating contract.
+
+- Development work for NOMOS ERP must run on host 73 (`nomos-erp`) under `/root/nomos_erp`.
+- This includes editing code, Git operations, dependency installation, builds, tests, migrations, Docker/Compose workloads, databases, Redis, and application services.
+- Host 72 is control/orchestration only. It may issue commands to host 73, but NOMOS development workloads must not execute on host 72.
+- Before making changes, confirm the intended command or operation will execute on host 73.
+- Read any additional relevant files under `docs/` and `skills/` before implementing the affected module.
+
 ## Target architecture
 
 - Web: Next.js + TypeScript
