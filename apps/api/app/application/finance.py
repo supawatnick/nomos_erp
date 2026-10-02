@@ -111,7 +111,7 @@ def post_journal(db: Connection, *, context: RequestContext, legal_entity_id: UU
         raise UnbalancedJournal("journal debit and credit must balance")
     _open_period(db, context.tenant_id, legal_entity_id, posting_date)
     account_ids = [UUID(str(line["account_id"])) for line in lines]
-    owned = db.execute(text("""SELECT count(*) FROM finance_accounts WHERE tenant_id=:t AND legal_entity_id=:e
+    owned: int = db.execute(text("""SELECT count(*) FROM finance_accounts WHERE tenant_id=:t AND legal_entity_id=:e
       AND id = ANY(:ids) AND status='ACTIVE'"""), {"t": context.tenant_id, "e": legal_entity_id,
       "ids": account_ids}).scalar_one()
     if owned != len(set(account_ids)):
