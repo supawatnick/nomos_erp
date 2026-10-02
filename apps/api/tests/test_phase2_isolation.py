@@ -28,7 +28,8 @@ def postgres_connection():
     try:
         yield connection
     finally:
-        transaction.rollback()
+        if transaction.is_active:
+            transaction.rollback()
         connection.close()
         engine.dispose()
 
