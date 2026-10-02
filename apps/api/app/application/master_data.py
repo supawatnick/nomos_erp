@@ -134,6 +134,10 @@ def add_product_unit(
         {"id": row_id, "tenant": context.tenant_id, "product": product_id, "unit": unit_id,
          "factor": factor_to_base, "purchase": is_purchase_unit, "sales": is_sales_unit, "now": now},
     )
+    write_audit(connection, tenant_id=context.tenant_id, request_id=context.request_id,
+                action="catalog.product.updated", actor_user_id=context.actor_user_id,
+                actor_tenant_user_id=context.tenant_user_id, target_type="product",
+                target_id=product_id, metadata={"changed_fields": ["units"]})
     return row_id
 
 
@@ -148,4 +152,8 @@ def add_product_barcode(
         {"id": row_id, "tenant": context.tenant_id, "product": product_id,
          "product_unit": product_unit_id, "barcode": barcode, "now": datetime.now(UTC)},
     )
+    write_audit(connection, tenant_id=context.tenant_id, request_id=context.request_id,
+                action="catalog.product.updated", actor_user_id=context.actor_user_id,
+                actor_tenant_user_id=context.tenant_user_id, target_type="product",
+                target_id=product_id, metadata={"changed_fields": ["barcodes"]})
     return row_id
