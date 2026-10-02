@@ -6,8 +6,9 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError
 
 from app.application.auth import resolve_session
+from app.application.organization import rename_legal_entity
 from app.core.config import get_settings
-from app.domain.security import hash_session_token
+from app.domain.security import RequestContext, hash_session_token
 from app.infrastructure.platform import (
     LegalEntityRepository,
     claim_idempotency,
@@ -194,3 +195,28 @@ def test_revoked_session_cannot_resolve(postgres_connection) -> None:
     with pytest.raises(HTTPException) as exc:
         resolve_session(token, tenant_id, uuid4())
     assert exc.value.status_code == 401
+
+
+def test_admin_mutation_writes_correlated_audit_and_outbox(postgres_connection) -> None:
+    now = datetime.now(UTC)
+    tenant_id, entity_id = uuid4(), uuid4()
+    context = RequestContext(uuid4(), uuid4(), tenant_id, uuid4(), frozenset({"organization.manage"}))
+    postgres_connection.execute(
+        text("INSERT INTO tenants (id,slug,name,status,default_locale,default_timezone,base_currency,created_at,updated_at) VALUES (:id,:slug,'T','ACTIVE','th-TH','Asia/Bangkok','THB',:now,:now)"),
+        {"id": tenant_id, "slug": "admin-" + tenant_id.hex, "now": now},
+    )
+    postgres_connection.execute(
+        text("INSERT INTO legal_entities (id,tenant_id,code,legal_name,country_code,base_currency,timezone,status,created_at,updated_at) VALUES (:id,:tenant,'LE','Before','TH','THB','Asia/Bangkok','ACTIVE',:now,:now)"),
+        {"id": entity_id, "tenant": tenant_id, "now": now},
+    )
+    assert rename_legal_entity(
+        postgres_connection, context=context, entity_id=entity_id, legal_name="After"
+    )
+    assert postgres_connection.execute(
+        text("SELECT count(*) FROM audit_logs WHERE tenant_id=:tenant AND request_id=:request"),
+        {"tenant": tenant_id, "request": context.request_id},
+    ).scalar_one() == 1
+    assert postgres_connection.execute(
+        text("SELECT count(*) FROM outbox_events WHERE tenant_id=:tenant AND aggregate_id=:entity"),
+        {"tenant": tenant_id, "entity": entity_id},
+    ).scalar_one() == 1
