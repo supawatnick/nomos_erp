@@ -23,9 +23,9 @@ jobs:
       - run: python -m pip install -r apps/api/requirements.txt pip-audit
       - run: ruff check apps/api
       - run: mypy apps/api/app
-      - run: pytest -q
-        working-directory: apps/api
       - run: alembic upgrade head
+        working-directory: apps/api
+      - run: pytest -q
         working-directory: apps/api
       - run: pip-audit -r apps/api/requirements.txt
       - run: npm ci
