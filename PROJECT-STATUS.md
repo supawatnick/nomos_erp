@@ -3,11 +3,11 @@
 > Operational handoff/source of truth. Read after AGENTS.md before every work session.
 
 ## Current stage
-Phase 3 — Catalog and Warehouse
+Phase 4 — Inventory Engine
 
-Overall status: **PHASE 3 PASS — READY FOR PHASE 4**
+Overall status: **PHASE 4 PASS — READY FOR PHASE 5**
 
-Primary objective: begin Phase 4 Inventory Engine on host 73 only while preserving Phase 0–3 invariants and the revised four-core ERP framework: Finance & Accounting, Inventory & Warehouse, Procurement & Purchasing, Sales & CRM.
+Primary objective: begin Phase 5 Inventory Web ERP on host 73 only, consuming the completed Phase 4 inventory application/API contracts without duplicating stock rules in UI.
 
 ## Completed
 
@@ -42,6 +42,37 @@ Primary objective: begin Phase 4 Inventory Engine on host 73 only while preservi
 - [x] Product Web search/filter/sort/pagination and loading/empty/error states.
 - [x] Web Phase 3 regression tests.
 - [x] Phase 3 review — docs/PHASE-3-REVIEW.md.
+
+### Phase 4 — Inventory Engine
+- [x] PostgreSQL inventory_transactions, inventory_transaction_lines and inventory_balances.
+- [x] Exact NUMERIC(24,8) ledger/base quantities and non-negative balance projection.
+- [x] One posting layer for RECEIVE/ISSUE/TRANSFER/ADJUST/OPENING/REVERSAL.
+- [x] Aggregate-before-lock and deterministic product/location balance locking.
+- [x] Atomic transfer and default no-negative-stock.
+- [x] Immutable POSTED history and linked reversal.
+- [x] Idempotency replay/conflict/concurrent-key protection.
+- [x] Tenant/product/unit/location/legal-entity validation.
+- [x] Correlated audit and transactional outbox.
+- [x] Ledger-to-balance reconciliation.
+- [x] Stock-bearing warehouse/location archive protection activated.
+- [x] Inventory API for posting, reversal, movement history, balances and reconciliation.
+- [x] Concurrent issue/no-oversell acceptance.
+- [x] Phase 4 review — docs/PHASE-4-REVIEW.md.
+
+## Phase 4 acceptance evidence
+- API Ruff: PASS.
+- API mypy strict: PASS.
+- PostgreSQL Alembic upgrade through 0005_phase4_inventory_engine: PASS.
+- PostgreSQL suite: PASS, including Phase 4 concurrency/idempotency/reconciliation acceptance.
+- Receive/Issue/Transfer/Adjust/Opening/Reversal: PASS.
+- Idempotency replay/conflict/concurrent-key: PASS.
+- Concurrent issue/no oversell: PASS.
+- Atomic transfer/no-negative-stock: PASS.
+- Reversal linkage and ledger-to-balance reconciliation: PASS.
+- Cross-tenant location rejection: PASS.
+- Audit/outbox and stock-bearing archive guard: PASS.
+- Final full CI/documentation gate: pending final documentation commit run at time of this status update; Phase 4 closure requires it to be green.
+- Host 73 clean-state verification: required after final sync.
 
 ## Phase 3 acceptance evidence
 - API Ruff: PASS.
@@ -95,18 +126,18 @@ Primary objective: begin Phase 4 Inventory Engine on host 73 only while preservi
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Phase 4 inventory persistence
-Implement inventory transactions/lines/balances and required constraints/indexes using the approved ledger contract.
+### NEXT 1 — Phase 5 inventory Web shell
+Build dashboard/stock/movement operational navigation and permission-aware inventory surfaces using existing Web design contract.
 
-### NEXT 2 — Phase 4 posting engine
-Implement receive/issue/transfer/adjust/reversal/opening through one application posting layer with aggregate-before-lock, deterministic locks, no-negative-stock and immutable POSTED history.
+### NEXT 2 — Phase 5 posting workflows
+Build Receive, Issue, Transfer and Adjustment forms that call Phase 4 APIs with Idempotency-Key and explicit error/retry states.
 
-### NEXT 3 — Phase 4 concurrency/reconciliation acceptance
-Implement idempotency replay/conflict/concurrent-key tests, concurrent issue/no-oversell, atomic transfer, reversal linkage, ledger-to-balance reconciliation and correlated audit/outbox gates.
+### NEXT 3 — Phase 5 operational acceptance
+Add Web tests/E2E for balances, movement history, posting, insufficient stock, replay-safe retry and permission-denied states.
 
 ## Latest activity
 - Phase 3 Catalog and Warehouse implementation completed.
 - Phase 3 PostgreSQL/API/Web/security regression gate PASS in GitHub Actions run 36974731001.
 - Phase 3 review recorded in docs/PHASE-3-REVIEW.md.
 - Four-core ERP plan/framework/skills revision and Phase 0–3 alignment patch completed without invalidating Phase 0–3 acceptance.
-- Immediate next executable action remains Phase 4 inventory persistence on host 73; its contracts must preserve later Procurement/Sales/Finance integration.
+- Phase 4 Inventory Engine implemented with concurrency/idempotency/reconciliation acceptance and cross-core source contracts.\n- Immediate next executable action is Phase 5 Inventory Web ERP on host 73.
