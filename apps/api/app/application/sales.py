@@ -169,6 +169,15 @@ def accept_quotation(db: Connection, *, context: RequestContext, quotation_id: U
     return order_id
 
 
+def _event(db: Connection, context: RequestContext, order_id: UUID, event_type: str,
+           from_status: str | None, to_status: str | None):
+    db.execute(text("""INSERT INTO sales_order_events
+      (id,tenant_id,sales_order_id,event_type,from_status,to_status,occurred_at,actor_tenant_user_id)
+      VALUES (:id,:t,:so,:event,:from_status,:to_status,:now,:actor)"""),
+      {"id":uuid4(),"t":context.tenant_id,"so":order_id,"event":event_type,"from_status":from_status,
+       "to_status":to_status,"now":datetime.now(UTC),"actor":context.tenant_user_id})
+
+
 def confirm_order(db: Connection, *, context: RequestContext, order_id: UUID):
     require_permission(context,"sales_order.manage")
     row=db.execute(text("SELECT status FROM sales_orders WHERE tenant_id=:t AND id=:id FOR UPDATE"),
@@ -178,6 +187,7 @@ def confirm_order(db: Connection, *, context: RequestContext, order_id: UUID):
     now=datetime.now(UTC)
     db.execute(text("UPDATE sales_orders SET status='CONFIRMED',confirmed_at=:now,version=version+1,updated_at=:now WHERE tenant_id=:t AND id=:id"),
         {"now":now,"t":context.tenant_id,"id":order_id})
+    _event(db,context,order_id,"CONFIRMED","DRAFT","CONFIRMED")
     _audit(db,context,"sales.order.confirmed","sales_order",order_id)
 
 
@@ -225,6 +235,7 @@ def reserve_order(db: Connection, *, context: RequestContext, order_id: UUID, lo
         db.execute(text("UPDATE sales_order_lines SET reserved_quantity=reserved_quantity+:qty WHERE tenant_id=:t AND id=:id"),
           {"qty":qty,"t":context.tenant_id,"id":line_id})
     status=_order_status(db,context.tenant_id,order_id)
+    _event(db,context,order_id,"RESERVATION",order["status"],status)
     _audit(db,context,"sales.reservation.created","sales_order",order_id,{"status":status})
 
 
@@ -280,6 +291,7 @@ def post_delivery(db: Connection, *, context: RequestContext, order_id: UUID, lo
               {"take":take,"t":context.tenant_id,"id":line_id});remaining-=take
             if remaining<=0:break
     status=_order_status(db,context.tenant_id,order_id)
+    _event(db,context,order_id,"DELIVERY",order["status"],status)
     _audit(db,context,"sales.delivery.posted","sales_delivery",did,{"sales_order_id":str(order_id),"inventory_transaction_id":str(inventory),"status":status})
     write_outbox(db,tenant_id=context.tenant_id,aggregate_type="sales_delivery",aggregate_id=did,event_type="sales.delivery.posted",payload={"sales_delivery_id":str(did)})
     return did
@@ -318,3 +330,45 @@ def post_sales_return(db: Connection, *, context: RequestContext, order_id: UUID
     _audit(db,context,"sales.return.posted","sales_return",rid,{"sales_order_id":str(order_id),"inventory_transaction_id":str(inventory)})
     write_outbox(db,tenant_id=context.tenant_id,aggregate_type="sales_return",aggregate_id=rid,event_type="sales.return.posted",payload={"sales_return_id":str(rid)})
     return rid
+
+
+def release_reservations(db: Connection, *, context: RequestContext, order_id: UUID) -> None:
+    require_permission(context,"sales.reserve")
+    order=db.execute(text("SELECT status FROM sales_orders WHERE tenant_id=:t AND id=:id FOR UPDATE"),
+        {"t":context.tenant_id,"id":order_id}).mappings().first()
+    if not order: raise SalesError("sales order not found")
+    rows=db.execute(text("""SELECT id,sales_order_line_id,quantity,fulfilled_quantity FROM sales_reservations
+      WHERE tenant_id=:t AND sales_order_id=:so AND status='ACTIVE' FOR UPDATE"""),
+      {"t":context.tenant_id,"so":order_id}).mappings().all()
+    for r in rows:
+        remaining=Decimal(r["quantity"])-Decimal(r["fulfilled_quantity"])
+        db.execute(text("UPDATE sales_reservations SET status='RELEASED',released_at=:now WHERE tenant_id=:t AND id=:id"),
+            {"now":datetime.now(UTC),"t":context.tenant_id,"id":r["id"]})
+        db.execute(text("UPDATE sales_order_lines SET reserved_quantity=reserved_quantity-:qty WHERE tenant_id=:t AND id=:id"),
+            {"qty":remaining,"t":context.tenant_id,"id":r["sales_order_line_id"]})
+    status=_order_status(db,context.tenant_id,order_id)
+    _event(db,context,order_id,"RESERVATION_RELEASED",order["status"],status)
+    _audit(db,context,"sales.reservation.released","sales_order",order_id,{"status":status})
+
+
+def cancel_order(db: Connection, *, context: RequestContext, order_id: UUID) -> None:
+    require_permission(context,"sales_order.override")
+    order=db.execute(text("SELECT status FROM sales_orders WHERE tenant_id=:t AND id=:id FOR UPDATE"),
+        {"t":context.tenant_id,"id":order_id}).mappings().first()
+    if not order or order["status"] in {"FULFILLED","CLOSED","CANCELLED"}:
+        raise SalesError("sales order cannot be cancelled")
+    delivered=Decimal(db.execute(text("SELECT COALESCE(sum(delivered_quantity),0) FROM sales_order_lines WHERE tenant_id=:t AND sales_order_id=:so"),
+        {"t":context.tenant_id,"so":order_id}).scalar_one())
+    if delivered>0: raise SalesError("fulfilled sales order cannot be cancelled")
+    rows=db.execute(text("SELECT id,sales_order_line_id,quantity,fulfilled_quantity FROM sales_reservations WHERE tenant_id=:t AND sales_order_id=:so AND status='ACTIVE' FOR UPDATE"),
+        {"t":context.tenant_id,"so":order_id}).mappings().all()
+    for r in rows:
+        remaining=Decimal(r["quantity"])-Decimal(r["fulfilled_quantity"])
+        db.execute(text("UPDATE sales_reservations SET status='RELEASED',released_at=:now WHERE tenant_id=:t AND id=:id"),
+            {"now":datetime.now(UTC),"t":context.tenant_id,"id":r["id"]})
+        db.execute(text("UPDATE sales_order_lines SET reserved_quantity=reserved_quantity-:qty WHERE tenant_id=:t AND id=:id"),
+            {"qty":remaining,"t":context.tenant_id,"id":r["sales_order_line_id"]})
+    db.execute(text("UPDATE sales_orders SET status='CANCELLED',version=version+1,updated_at=:now WHERE tenant_id=:t AND id=:id"),
+        {"now":datetime.now(UTC),"t":context.tenant_id,"id":order_id})
+    _event(db,context,order_id,"CANCELLED",order["status"],"CANCELLED")
+    _audit(db,context,"sales.order.cancelled","sales_order",order_id)
