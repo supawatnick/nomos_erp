@@ -82,6 +82,8 @@ Primary objective: begin Phase 4 Inventory Engine on host 73 only while preservi
 - [x] Cross-core flows locked: QT->SO->Inventory->Invoice/AR->Receipt and PR/RFQ->PO->Inventory Receipt->Invoice/AP->Payment.
 - [x] Added skills/finance.md, skills/procurement.md and skills/sales-crm.md; updated product/skills index.
 - [x] Core ERP V1 release gate moved to Phase 12 where all four cores are operational.
+- [x] Phase 0–3 alignment patch completed: data/ERD, document lifecycle, authorization namespaces, API/audit and numbering contracts now preserve the four-core design.
+- [x] Alignment review — docs/PHASE-0-3-ALIGNMENT.md.
 
 ## Current blockers
 - None for Phase 4.
@@ -106,5 +108,5 @@ Implement idempotency replay/conflict/concurrent-key tests, concurrent issue/no-
 - Phase 3 Catalog and Warehouse implementation completed.
 - Phase 3 PostgreSQL/API/Web/security regression gate PASS in GitHub Actions run 36974731001.
 - Phase 3 review recorded in docs/PHASE-3-REVIEW.md.
-- Four-core ERP plan/framework/skills revision completed after Phase 3 without invalidating Phase 0–3 acceptance.
+- Four-core ERP plan/framework/skills revision and Phase 0–3 alignment patch completed without invalidating Phase 0–3 acceptance.
 - Immediate next executable action remains Phase 4 inventory persistence on host 73; its contracts must preserve later Procurement/Sales/Finance integration.
