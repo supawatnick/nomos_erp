@@ -1,0 +1,4 @@
+import assert from "node:assert/strict";import {readFile} from "node:fs/promises";import test from "node:test";
+test("business partners expose dual role workflow",async()=>{const s=await readFile(new URL("../src/app/partners/page.tsx",import.meta.url),"utf8");assert.match(s,/is_customer/);assert.match(s,/is_supplier/);assert.match(s,/Customer/);assert.match(s,/Supplier/)});
+test("CRM exposes leads and opportunities without sales orders",async()=>{const s=await readFile(new URL("../src/app/crm/page.tsx",import.meta.url),"utf8");assert.match(s,/crm\/leads/);assert.match(s,/crm\/opportunities/);assert.match(s,/Qualify/);assert.doesNotMatch(s,/sales-orders/)});
+test("Phase 7 routes are linked from workspace",async()=>{const s=await readFile(new URL("../src/app/page.tsx",import.meta.url),"utf8");assert.match(s,/href="\/partners"/);assert.match(s,/href="\/crm"/)});
