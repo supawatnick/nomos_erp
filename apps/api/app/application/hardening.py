@@ -14,7 +14,7 @@ def reconciliation_snapshot(db: Connection, *, tenant_id: UUID) -> dict[str, obj
       SELECT product_id,location_id FROM ledger UNION
       SELECT product_id,location_id FROM inventory_balances WHERE tenant_id=:t
     )
-    SELECT COALESCE(sum(abs(COALESCE(l.qty,0)-COALESCE(b.quantity,0))),0)
+    SELECT COALESCE(sum(abs(COALESCE(l.qty,0)-COALESCE(b.on_hand,0))),0)
     FROM keys k LEFT JOIN ledger l ON l.product_id=k.product_id AND l.location_id=k.location_id
     LEFT JOIN inventory_balances b ON b.tenant_id=:t AND b.product_id=k.product_id AND b.location_id=k.location_id"""),
       {"t":tenant_id}).scalar_one()
