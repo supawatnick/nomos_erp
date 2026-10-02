@@ -6,7 +6,6 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy import create_engine, text
 
-from app.application.master_data import archive_master
 from app.application.inventory import (
     IdempotencyConflict,
     InsufficientStock,
@@ -15,6 +14,7 @@ from app.application.inventory import (
     reconcile_inventory,
     reverse_inventory,
 )
+from app.application.master_data import archive_master
 from app.core.config import get_settings
 from app.domain.security import RequestContext
 
