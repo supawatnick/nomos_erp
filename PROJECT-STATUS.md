@@ -5,9 +5,9 @@
 ## Current stage
 Phase 15 Commercial Hardening Closure
 
-Overall status: **PHASE 15 PASS FOR CONTROLLED COMMERCIAL PILOT — PHASE 13 DEFERRED / NOT PASS**
+Overall status: **PHASE 15 CODE/HARDENING PASS — DEPLOYMENT/BROWSER ACCEPTANCE OPEN — PHASE 13 DEFERRED / NOT PASS**
 
-Primary objective: maintain the Phase 15 controlled-pilot baseline; Phase 13 LINE remains the only deferred implementation phase and is not PASS.
+Primary objective: deploy the existing Web/API runtime on host 73 and prove browser-accessible end-to-end operation before claiming controlled commercial pilot readiness; Phase 13 LINE remains deferred and is not PASS.
 
 ## Completed
 
@@ -287,19 +287,20 @@ Primary objective: maintain the Phase 15 controlled-pilot baseline; Phase 13 LIN
 - [x] Implementation CI 37017699870 PASS — 82 PostgreSQL/API tests plus full Web/security gate.
 - [x] Host 73 runtime suite 82 passed, clean, 0/0 divergence, stashes preserved.
 - [x] Detailed review: docs/PHASE-15-REVIEW.md.
-- [x] Controlled commercial pilot hardening gate met.
+- [ ] Controlled commercial pilot readiness is OPEN pending deployed Web/API runtime and browser-accessible acceptance.
 
 ## Current blockers
-- No Phase 12 functional blocker remains.
+- **Deployment acceptance gap:** host 73 has no Next.js Web server listening; API processes are localhost-only. Source/build gates passed, but users cannot yet access the ERP Web app from a browser.
+- Phase 15 code/hardening remains green; commercial pilot readiness must not be claimed until browser/runtime acceptance passes.
 - Historical host 73 stashes remain preserved housekeeping only.
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Final Phase 15 documentation closure
-Verify final documentation CI and fast-forward host 73 to the documentation baseline without touching preserved stashes.
+### NEXT 1 — Deploy Web/API runtime on host 73
+Run the existing production Web build and one canonical FastAPI service under restartable services. Expose a single browser entry point and proxy /api, /health and /ready to the API.
 
-### NEXT 2 — Controlled pilot operation
-Use docs/PRODUCTION-RUNBOOK.md, docs/INCIDENT-RUNBOOK.md and docs/OBSERVABILITY.md for pilot deployment/operations. Do not market the pilot thresholds as a public SLA until production telemetry demonstrates them.
+### NEXT 2 — Browser/runtime acceptance
+Verify from the host network: Web root/login returns successfully, API health/readiness works through the same browser origin, login/API routing is same-origin, and representative Inventory/Purchasing/Sales/Finance/Reports/Subscription pages load without direct DB/Redis exposure being required.
 
-### NEXT 3 — Deferred Phase 13
-Resume LINE only by product decision. Until its signed/deduplicated webhook, secure linking and same-use-case permission acceptance pass, keep Phase 13 DEFERRED / NOT PASS and do not claim Integrated Channel ERP V1 or complete sequential phases 0–15.
+### NEXT 3 — Close corrected Phase 15 deployment gate
+Record the verified URL, service configuration, restart behavior and browser acceptance in docs/PHASE-15-REVIEW.md and docs/HOST-73-RUNBOOK.md. Only then restore controlled-commercial-pilot readiness wording. Phase 13 remains DEFERRED / NOT PASS.
