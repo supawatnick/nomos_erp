@@ -252,22 +252,21 @@ Primary objective: begin Phase 13 LINE from the clean Phase 12 Core ERP V1 basel
 - [x] Trial balance and AR/AP-to-GL reconciliation foundation.
 - [x] Finance API + Web workspace; API 0.12.0.
 - [x] Phase 12 implementation CI 37011808602 PASS — 75 PostgreSQL/API tests plus full gate.
+- [x] Final Phase 12 documentation CI 37012089058 PASS.
+- [x] Host 73 final runtime sync: Alembic 0018 head, PostgreSQL/API 75 passed, clean tree, 0 ahead / 0 behind.
+- [x] Historical host 73 stashes preserved and untouched.
 - [x] Detailed review: docs/PHASE-12-REVIEW.md.
 - [x] Core ERP V1 four-core implementation gate met.
 
 ## Current blockers
 - No Phase 12 functional blocker remains.
-- Final Phase 12 documentation CI and host 73 runtime synchronization are the closure tasks before Phase 13.
 - Historical host 73 stashes remain preserved housekeeping only.
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Final Phase 12 closure
-Verify documentation CI, fast-forward host 73, install synchronized dependencies, Alembic upgrade through 0018, run full PostgreSQL/API suite, and confirm clean 0/0 Git divergence with stashes preserved.
+### NEXT 1 — Phase 13 contract read
+Read LINE transport/identity/security contracts from the verified Phase 12 Core ERP V1 baseline.
 
-### NEXT 2 — Phase 13 contract read
-Read LINE transport/identity/security contracts only after NEXT 1 is green.
-
-### NEXT 3 — LINE implementation
+### NEXT 2 — LINE implementation
 Implement tenant LINE configuration, secure account linking, signed/deduplicated webhook and confirmation-based ERP operations over the same application services and permissions.
 
