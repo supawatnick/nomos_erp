@@ -3,8 +3,9 @@ from uuid import UUID, uuid4
 
 import structlog
 from fastapi import FastAPI, Header, HTTPException, Request, Response, status
+from pydantic import BaseModel, EmailStr
 
-from app.application.auth import resolve_session
+from app.application.auth import create_session, resolve_session, revoke_session
 from app.core.config import get_settings
 from app.core.database import database_ready
 
@@ -14,6 +15,12 @@ structlog.configure(
 )
 log = structlog.get_logger()
 app = FastAPI(title=settings.app_name, version="0.2.0")
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+    tenant_id: UUID
 
 
 @app.middleware("http")
@@ -78,3 +85,42 @@ def auth_context(
         },
         "meta": {"request_id": str(context.request_id)},
     }
+
+
+@app.post("/api/v1/auth/login")
+def login(payload: LoginRequest, request: Request) -> dict[str, object]:
+    token, context = create_session(
+        str(payload.email), payload.password, payload.tenant_id, request.state.request_id
+    )
+    return {
+        "data": {
+            "session_token": token,
+            "tenant_id": str(context.tenant_id),
+            "permissions": sorted(context.permissions),
+        },
+        "meta": {"request_id": str(context.request_id)},
+    }
+
+
+@app.post("/api/v1/auth/logout")
+def logout(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> dict[str, object]:
+    if not authorization or not authorization.startswith("Bearer ") or not x_tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "AUTHENTICATION_REQUIRED"},
+        )
+    token = authorization.removeprefix("Bearer ").strip()
+    try:
+        tenant_id = UUID(x_tenant_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "AUTHENTICATION_REQUIRED"},
+        ) from exc
+    context = resolve_session(token, tenant_id, request.state.request_id)
+    revoke_session(token, context)
+    return {"data": {"revoked": True}, "meta": {"request_id": str(context.request_id)}}
