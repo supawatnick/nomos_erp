@@ -53,8 +53,8 @@ test("inventory receive commits through browser and explicit reversal restores l
  await page.getByLabel("Quantity").fill("1");
  await page.getByLabel("Reference").fill(ref);
  await page.getByLabel("Reason").fill("Automated browser acceptance; reversed in same test");
- await expect(page.getByRole("button",{name:"Post RECEIVE"})).toBeEnabled(); await page.getByRole("button",{name:"Post RECEIVE"}).click();
- const posted=page.getByRole("status"); try{await expect(posted).toContainText("POSTED")}catch{const err=page.locator(".state.error");throw new Error("receive failed: "+(await err.count()?await err.innerText():"no UI error")+" API="+failed.join(","))}
+ const submit=page.getByRole("button",{name:"Post RECEIVE"}); await expect(submit).toBeEnabled(); await submit.click(); await page.waitForTimeout(500);
+ const posted=page.getByRole("status"); try{await expect(posted).toContainText("POSTED")}catch{const err=page.locator(".state.error");throw new Error("receive failed: "+(await err.count()?await err.innerText():"no UI error")+" API="+failed.join(",")+" disabled="+await submit.isDisabled()+" text="+await submit.innerText())}
  await page.goto("/inventory/movements");
  const row=page.getByRole("row").filter({hasText:ref});
  await expect(row).toBeVisible();
