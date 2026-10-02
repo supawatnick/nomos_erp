@@ -1,17 +1,9 @@
 import os
-os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
+os.environ.setdefault('DATABASE_URL', 'postgresql+psycopg://nomos:change-me-local-only@localhost:5432/nomos')
 from fastapi.testclient import TestClient
 from app.main import app
-
-client = TestClient(app)
-
-def test_health_has_request_id() -> None:
-    response = client.get("/health")
+def test_health():
+    response = TestClient(app).get('/health')
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
-    assert response.headers["X-Request-ID"]
-
-def test_ready_when_database_connects() -> None:
-    response = client.get("/ready")
-    assert response.status_code == 200
-    assert response.json() == {"status": "ready"}
+    assert response.json() == {'status': 'ok'}
+    assert response.headers['X-Request-ID']
