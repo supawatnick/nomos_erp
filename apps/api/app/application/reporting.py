@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
+from openpyxl import Workbook
 from sqlalchemy import Connection, text
 
 from app.domain.security import RequestContext, require_permission
@@ -117,3 +118,14 @@ def export_csv(rows: list[dict[str, Any]], columns: list[str]) -> bytes:
     for row in serialize_rows(rows):
         writer.writerow({key: _safe_cell(row.get(key)) for key in columns})
     return output.getvalue().encode("utf-8-sig")
+
+
+def export_xlsx(rows: list[dict[str, Any]], columns: list[str]) -> bytes:
+    workbook = Workbook(write_only=True)
+    sheet = workbook.create_sheet("Report")
+    sheet.append(columns)
+    for row in serialize_rows(rows):
+        sheet.append([_safe_cell(row.get(key)) for key in columns])
+    output = io.BytesIO()
+    workbook.save(output)
+    return output.getvalue()
