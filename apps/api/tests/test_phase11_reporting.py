@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 
 import pytest
@@ -40,9 +40,8 @@ def report_ctx(tenant, permissions):
 def test_report_catalog_is_allowlisted_and_unknown_report_rejected(engine):
     tenant, *_ = seed(engine)
     context = report_ctx(tenant, {"report.read"})
-    with engine.connect() as db:
-        with pytest.raises(ReportingError, match="unknown report"):
-            run_report(db, context=context, report="select * from users")
+    with engine.connect() as db, pytest.raises(ReportingError, match="unknown report"):
+        run_report(db, context=context, report="select * from users")
 
 
 def test_report_bounds_and_permission_are_enforced(engine):
@@ -50,9 +49,10 @@ def test_report_bounds_and_permission_are_enforced(engine):
     allowed = report_ctx(tenant, {"report.read"})
     denied = report_ctx(tenant, set())
     with engine.connect() as db:
+        today = datetime.now(UTC).date()
         with pytest.raises(ReportingError, match="date range"):
             run_report(db, context=allowed, report="sales-orders",
-                start=date.today()-timedelta(days=MAX_RANGE_DAYS+1), end=date.today())
+                start=today-timedelta(days=MAX_RANGE_DAYS+1), end=today)
         with pytest.raises(ReportingError, match="limit"):
             run_report(db, context=allowed, report="inventory-stock", limit=2001)
         with pytest.raises(HTTPException):
