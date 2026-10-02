@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from app.application.auth import resolve_session
 from app.core.config import get_settings
 from app.domain.security import hash_session_token
-from app.infrastructure.platform import LegalEntityRepository, write_audit, write_outbox
+from app.infrastructure.platform import (\n    LegalEntityRepository,\n    claim_idempotency,\n    write_audit,\n    write_outbox,\n)
 
 
 @pytest.fixture
@@ -127,3 +127,39 @@ def test_disabled_membership_cannot_resolve_session(postgres_connection) -> None
     with pytest.raises(HTTPException) as exc:
         resolve_session(token, tenant_id, uuid4())
     assert exc.value.status_code == 401
+
+
+def test_idempotency_replay_and_conflict(postgres_connection) -> None:
+    now = datetime.now(UTC)
+    tenant_id = uuid4()
+    postgres_connection.execute(
+        text("INSERT INTO tenants (id,slug,name,status,default_locale,default_timezone,base_currency,created_at,updated_at) VALUES (:id,:slug,'T','ACTIVE','th-TH','Asia/Bangkok','THB',:now,:now)"),
+        {"id": tenant_id, "slug": "idem-" + tenant_id.hex, "now": now},
+    )
+    first = claim_idempotency(
+        postgres_connection,
+        tenant_id=tenant_id,
+        scope="organization.update",
+        key="request-1",
+        fingerprint="a" * 64,
+        expires_at=now + timedelta(hours=1),
+    )
+    replay = claim_idempotency(
+        postgres_connection,
+        tenant_id=tenant_id,
+        scope="organization.update",
+        key="request-1",
+        fingerprint="a" * 64,
+        expires_at=now + timedelta(hours=1),
+    )
+    conflict = claim_idempotency(
+        postgres_connection,
+        tenant_id=tenant_id,
+        scope="organization.update",
+        key="request-1",
+        fingerprint="b" * 64,
+        expires_at=now + timedelta(hours=1),
+    )
+    assert first == (True, True)
+    assert replay == (False, True)
+    assert conflict == (False, False)
