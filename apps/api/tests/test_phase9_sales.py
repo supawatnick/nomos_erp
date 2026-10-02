@@ -51,7 +51,7 @@ def _qt(db,context,tenant,entity,branch,unit,product,customer,qty=Decimal(10)):
 
 
 def test_quotation_revision_acceptance_preserves_snapshot_and_has_no_stock_effect(engine):
-    tenant,entity,branch,unit,product,location,*_=seed(engine);context=sales_ctx(engine,tenant)
+    tenant,entity,branch,unit,product,_location,*_=seed(engine);context=sales_ctx(engine,tenant)
     with engine.begin() as db:
         customer=create_partner(db,context=context,code="CUS-"+uuid4().hex[:8],name="Customer",is_customer=True,is_supplier=False)
         _seed_sequence(db,tenant,"SO","SO-",entity=entity,branch=branch)
