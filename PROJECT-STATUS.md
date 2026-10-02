@@ -71,6 +71,18 @@ For Web-dependent phases, acceptance additionally requires:
 - Web lint/typecheck/build: PASS after remediation; production Web service restarted.
 - NOMOS-owned deployed-origin runtime tests now exist and cannot silently pass with zero discovered tests. Host 73 port-80 runtime gate: **3 passed, 0 failed, 0 skipped** covering critical routes, health/readiness, demo login/session context, and authenticated reads across master data + four cores + approvals/reports.\n- The new suite caught and forced fixes for Finance 405 method mismatch and 500 schema mismatch before acceptance.\n- Chromium DOM-driving E2E is now active on Host 73: **3 passed** covering login, session persistence/refresh, critical module navigation, Finance tab interaction and Inventory navigation/client errors. The suite exposed and forced a fix for a real session-loss-on-aborted-context-fetch defect.\n- **Remaining clean-room blocker:** browser E2E for business-state mutations (create/submit/approve/post/reverse/return as applicable) is still required before affected Web phases can return to PASS.
 
+
+## Clean-room continuation — 2026-10-02 17:02 UTC
+- Control-plane identity reconfirmed: Host 72 is orchestration; Host 73 is the NOMOS runtime target.
+- Host 73 deployed Web through Caddy returns HTTP 200 on port 80.
+- Temporary demo passwordless login returns HTTP 200 and authenticated session context resolves HTTP 200.
+- Authenticated runtime reads return HTTP 200 for master-data summary, inventory balances, Procurement PR/RFQ/PO, Sales quotations/orders, Finance accounts/periods/journals/invoices/payments, approvals and reports.
+- A prior ad-hoc probe used guessed endpoint names and produced 404/422; those results are not regressions. The canonical runtime-test endpoint list was then used and passed.
+- Latest browser-mutation test work is at commit 631e83a9ad0d6923fa6cca967f99a45a03828649 (Inventory receive + explicit reversal flow).
+- CI run 37036036854 exposed Ruff-only bootstrap/demo import defects; commits 3776e261b80bd112a1ca6da4646deb8ec8bdaa67 and 135855129a517ac74b03a4aef7dc0a1a1b0c6a4b corrected those import findings.
+- CI run 37037624283 then passed Ruff and exposed two remaining mypy defects: bootstrap_admin return annotation mismatch and provision_demo permission-count annotation. Later gates did not run because mypy stopped the job.
+- Direct SSH from the current Host 72 session to Host 73 reaches sshd but is rejected by public-key authentication for both root and ntap. Runtime HTTP remains healthy; SSH authorization must be restored before Host 73 service restart/deploy and on-host browser mutation E2E can be resumed safely.
+
 ## NEXT ACTIONS
 - **NEXT 1:** repair and acceptance-test authentication/login end-to-end.
 - **NEXT 2:** establish shared Web design system + shell and automated Web test harness.
