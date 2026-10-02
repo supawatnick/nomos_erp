@@ -83,6 +83,17 @@ For Web-dependent phases, acceptance additionally requires:
 - CI run 37037624283 then passed Ruff and exposed two remaining mypy defects: bootstrap_admin return annotation mismatch and provision_demo permission-count annotation. Later gates did not run because mypy stopped the job.
 - Direct SSH from the current Host 72 session to Host 73 reaches sshd but is rejected by public-key authentication for both root and ntap. Runtime HTTP remains healthy; SSH authorization must be restored before Host 73 service restart/deploy and on-host browser mutation E2E can be resumed safely.
 
+
+## Clean-room continuation — 2026-10-02 18:50 UTC
+- Host 72 SSH access to Host 73 is confirmed using the dedicated demo operations identity; Host 73 reports hostname nomos-erp.
+- Host 73 runtime layout: PostgreSQL and Redis run in Docker Compose; nomos-api.service and nomos-web.service run under systemd.
+- Deployed runtime suite passed 3/3: critical ERP routes, health/readiness, and demo login + authenticated module reads.
+- Browser acceptance originally passed 3/4 and failed only on Inventory RECEIVE because no POST was emitted after clicking the enabled button.
+- Root cause: inventory idempotency generation called crypto.randomUUID() directly. The private HTTP origin is not a secure context, so the browser threw before fetch. Commit e6a0e8ce7b5c5190b8a794394c1f16519d226458 adds a getRandomValues fallback.
+- Production Web rebuilt successfully and nomos-web.service restarted. API log then confirmed POST /api/v1/inventory/transactions returned 201 Created.
+- Focused browser mutation acceptance now passes 1/1 end-to-end: RECEIVE is posted, movement is visible, explicit reversal is posted, and reversal is visible.
+- CI is green for the production fix commit e6a0e8ce7b5c5190b8a794394c1f16519d226458 and preceding mypy fixes. The latest test-only synchronization commit is still running CI at the time of this note.
+
 ## NEXT ACTIONS
 - **NEXT 1:** repair and acceptance-test authentication/login end-to-end.
 - **NEXT 2:** establish shared Web design system + shell and automated Web test harness.
