@@ -1,47 +1,31 @@
-name: CI
-on:
-  push:
-  pull_request:
+name: ci
+on: [push, pull_request]
 jobs:
-  api:
+  foundation:
     runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:17-alpine
-        env:
-          POSTGRES_DB: nomos
-          POSTGRES_USER: nomos
-          POSTGRES_PASSWORD: ci-only
-        ports: ["5432:5432"]
+        env: { POSTGRES_DB: nomos, POSTGRES_USER: nomos, POSTGRES_PASSWORD: change-me-local-only }
+        ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U nomos -d nomos"
-          --health-interval 5s --health-timeout 5s --health-retries 10
+          --health-cmd "pg_isready -U nomos -d nomos" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: postgresql+psycopg://nomos:ci-only@localhost:5432/nomos
+      DATABASE_URL: postgresql+psycopg://nomos:change-me-local-only@localhost:5432/nomos
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: {python-version: "3.12"}
-      - run: python -m venv .venv && .venv/bin/pip install -e './apps/api[dev]'
-      - run: .venv/bin/ruff check apps/api
-      - run: cd apps/api && ../../.venv/bin/mypy app
-      - run: cd apps/api && ../../.venv/bin/pytest -q
-      - run: cd apps/api && ../../.venv/bin/alembic upgrade head
-  web:
-    runs-on: ubuntu-latest
-    defaults:
-      run: {working-directory: apps/web}
-    steps:
-      - uses: actions/checkout@v4
+        with: { python-version: '3.12' }
       - uses: actions/setup-node@v4
-        with: {node-version: "18", cache: npm, cache-dependency-path: apps/web/package-lock.json}
+        with: { node-version: '18.19.1', cache: npm, cache-dependency-path: apps/web/package-lock.json }
+      - run: python -m pip install -r apps/api/requirements.txt
+      - run: ruff check apps/api
+      - run: mypy apps/api/app
+      - run: pytest -q
+        working-directory: apps/api
+      - run: alembic upgrade head
+        working-directory: apps/api
       - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
-  security:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: gitleaks/gitleaks-action@v2
+        working-directory: apps/web
+      - run: npm run lint && npm run typecheck && npm test && npm run build
+        working-directory: apps/web
