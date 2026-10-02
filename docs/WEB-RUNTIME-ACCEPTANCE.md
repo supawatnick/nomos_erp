@@ -71,3 +71,23 @@ Deployed-origin run against **http://10.10.110.73**:
 
 ### Remaining limitation
 This runtime suite is an automated deployed-origin integration/smoke suite, not yet a full DOM-driving browser suite. It proves routing, login/session and critical authenticated API reads through the deployed origin. Destructive/financial posting browser workflows still require dedicated E2E coverage before Phase 15 can return to PASS.
+
+
+## DOM-driving browser gate — 2026-10-02
+Playwright Chromium acceptance is now installed and executed on Host 73 against the deployed private-network origin.
+
+Initial execution correctly FAILED because Host 73 lacked Chromium runtime libraries (`libatk-1.0.so.0`). Playwright system dependencies were installed; this infrastructure failure was not waived.
+
+The first real browser run then exposed a client lifecycle defect that HTTP/API smoke could not detect: navigating or refreshing while the home page `/api/v1/auth/context` request was in flight aborted `fetch`; the generic catch handler interpreted the abort as authentication failure and deleted `nomos_session` / `nomos_tenant`. This manifested as successful login followed by apparently random logout / Inventory auth errors. The workspace now uses `AbortController`, ignores navigation AbortError, and clears credentials only on explicit 401/403.
+
+A test-authoring defect was also corrected: Next.js route announcer uses an empty `role=alert`; browser assertions now target NOMOS error surfaces rather than treating framework accessibility infrastructure as an ERP error.
+
+Final Host 73 gate:
+- deterministic Web contract tests: **3 passed**;
+- deployed-origin runtime integration tests: **3 passed**;
+- Chromium DOM E2E: **3 passed**;
+- browser flows cover demo sign-in, critical module navigation, session persistence across refresh, interactive Finance tabs, and Inventory operational navigation/client-error detection;
+- Web lint: PASS;
+- Web typecheck: PASS.
+
+This closes the previous “no DOM-driving browser test” gap for navigation/session/read surfaces. Phase 15 remains in remediation until mutation workflows that change business state (create/submit/approve/post/reverse/return where applicable) receive browser E2E coverage.
