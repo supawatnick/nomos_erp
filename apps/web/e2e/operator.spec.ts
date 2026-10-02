@@ -43,6 +43,7 @@ test("inventory operational navigation renders without client errors",async({pag
 
 
 test("inventory receive commits through browser and explicit reversal restores ledger state",async({page})=>{
+ const failed:string[]=[];page.on("response",r=>{if(r.url().includes("/api/")&&r.status()>=400)failed.push(r.status()+" "+r.url())});
  await page.goto("/login");await page.getByRole("button",{name:"Sign in to NOMOS"}).click();await expect(page).toHaveURL(/\/$/);
  const ref="E2E-RECEIVE-"+Date.now();
  await page.goto("/inventory/receive");
@@ -53,7 +54,7 @@ test("inventory receive commits through browser and explicit reversal restores l
  await page.getByLabel("Reference").fill(ref);
  await page.getByLabel("Reason").fill("Automated browser acceptance; reversed in same test");
  await page.getByRole("button",{name:"Post RECEIVE"}).click();
- await expect(page.getByRole("status")).toContainText("POSTED");
+ const posted=page.getByRole("status"); try{await expect(posted).toContainText("POSTED")}catch{const err=page.locator(".state.error");throw new Error("receive failed: "+(await err.count()?await err.innerText():"no UI error")+" API="+failed.join(","))}
  await page.goto("/inventory/movements");
  const row=page.getByRole("row").filter({hasText:ref});
  await expect(row).toBeVisible();
