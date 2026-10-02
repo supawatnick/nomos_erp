@@ -57,62 +57,44 @@ Operational note: nested SSH Git commands from the control host may sometimes be
 Phase 0 is NOT complete. The following contracts still require completion and review:
 
 - [x] Detailed ERD: columns, keys, constraints and relationships for Phase 1–6 tables — `docs/ERD-PHASE-1-6.md`.
-- [ ] Permission matrix: actor/role examples mapped to permissions and high-risk actions.
-- [ ] Inventory state machine and exact posting/reversal rules.
-- [ ] Inventory concurrency/locking/idempotency contract.
+- [x] Permission matrix: actor/role examples mapped to permissions and high-risk actions — `docs/AUTHORIZATION-MATRIX.md`.
+- [x] Inventory state machine and exact posting/reversal rules — `docs/INVENTORY-EXECUTION.md`.
+- [x] Inventory concurrency/locking/idempotency contract — `docs/INVENTORY-EXECUTION.md`.
 - [ ] Organization model details: legal entity/branch/warehouse ownership and defaults.
-- [ ] API conventions: versioning, pagination/filtering, request context, idempotency, errors.
-- [ ] Audit event taxonomy.
+- [x] API conventions: versioning, pagination/filtering, request context, idempotency, errors — `docs/API-AUDIT-CONTRACT.md`.
+- [x] Audit event taxonomy — `docs/API-AUDIT-CONTRACT.md`.
 - [ ] Import/opening-stock contract.
 - [ ] Phase 1–6 acceptance criteria/checklists.
 - [ ] Phase 0 cross-document consistency review.
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Inventory execution contract
-Specify the exact inventory state machine and posting behavior:
-1. allowed transaction states/transitions
-2. receive/issue/transfer/adjust/opening/reversal posting algorithms
-3. deterministic balance-row lock order
-4. safe creation of missing balance rows
-5. negative-stock validation
-6. transfer atomicity
-7. idempotency replay/conflict behavior
-8. reversal eligibility/linkage
-9. ledger-to-balance reconciliation algorithm
-10. required concurrency/negative tests
+### NEXT 1 — Close remaining Phase 0 contracts
+Complete:
+1. Organization model details: legal entity/branch/warehouse ownership/defaults.
+2. Import and opening-stock execution contract.
+3. Phase 1–6 acceptance criteria/checklists.
+4. NOMOS Web Design Contract derived from the approved uploaded DESIGN.md before Web scaffold.
 
-Exit: concurrency and posting integration tests can be written directly from the contract.
+Exit: no known Phase 0 contract remains unchecked except final review.
 
+### NEXT 2 — Phase 0 architecture review
+Cross-check ERD, Inventory execution, RBAC, API/Audit, organization/import/design contracts for contradictions, missing tenant scope, lifecycle conflicts and future Purchasing/Sales/Accounting/LINE compatibility.
 
+Exit: Phase 0 marked PASS only if all critical findings are resolved or explicitly blocked.
 
-### NEXT 2 — Authorization matrix
-Define baseline roles only as examples, map every Phase 1–6 operation to explicit permissions, identify stronger-permission actions and future approval hooks.
-
-Exit: API authorization tests can be generated from the matrix.
-
-### NEXT 3 — API and audit contracts
-Finalize request context, pagination/filtering, mutation/idempotency headers, error mapping and audit-event taxonomy.
-
-Exit: FastAPI skeleton has stable conventions before feature routers are added.
-
-### NEXT 4 — Phase 0 architecture review
-Cross-check all docs for contradictions, missing tenant scope, stock side effects, lifecycle conflicts and future Purchasing/Sales/Accounting compatibility.
-
-Exit: Phase 0 marked PASS.
-
-### NEXT 5 — Start Phase 1 on host 73 only
-After Phase 0 PASS:
-- sync repository on 73
+### NEXT 3 — Start Phase 1 on host 73 only
+Only after Phase 0 PASS:
+- sync repository on host 73
 - inspect installed runtime/tooling on 73
 - scaffold Web/API/worker
-- configure PostgreSQL/Redis via development infrastructure on 73
-- migration baseline
+- configure PostgreSQL/Redis development infrastructure on 73
+- create migration baseline
 - CI/lint/type/test/build
 - health/readiness
 - prove clean boot from documented commands
 
-Do NOT begin NEXT 5 before Phase 0 exit gate passes.
+Do NOT start Phase 1 before the Phase 0 exit gate passes.
 
 ## Session handoff procedure
 Before starting NOMOS work:
@@ -130,6 +112,12 @@ Before ending meaningful work:
 6. Record the latest meaningful result below.
 
 ## Latest activity
+- NEXT 1 Inventory execution/concurrency contract PASS — `docs/INVENTORY-EXECUTION.md`.
+- NEXT 2 Authorization matrix PASS — `docs/AUTHORIZATION-MATRIX.md`.
+- NEXT 3 API/Audit contract PASS — `docs/API-AUDIT-CONTRACT.md`.
+- Locked deterministic aggregate-before-lock inventory posting, exact idempotency behavior, reversal constraints, tenant-wide Phase 1–6 permission matrix, stable API/error/pagination conventions and audit taxonomy.
+- No new architecture blocker found.
+- Immediate next action: close remaining Phase 0 organization/import/acceptance/design contracts, then run final Phase 0 architecture review.
 - NEXT 1 Detailed ERD completed and PASS: `docs/ERD-PHASE-1-6.md`.
 - Locked database safeguards: composite same-tenant foreign keys, exact numeric/time conventions, append-oriented ledger/audit, balance projection key, idempotency/outbox persistence, concurrency-safe sequence persistence and traceable imports.
 - No new architecture blocker found.
