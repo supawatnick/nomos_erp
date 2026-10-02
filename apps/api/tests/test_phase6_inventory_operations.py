@@ -2,9 +2,10 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import text
+from sqlalchemy import create_engine, text
+
+from app.core.config import get_settings
 from test_phase4_inventory import balance, ctx, seed
-from test_phase4_inventory import engine as postgres_engine
 
 from app.application.inventory import StockLine, post_inventory, reconcile_inventory
 from app.application.inventory_operations import (
@@ -15,6 +16,15 @@ from app.application.inventory_operations import (
     reorder_status,
     upsert_reorder_policy,
 )
+
+
+@pytest.fixture
+def engine():
+    url=get_settings().database_url
+    if not url.startswith("postgresql"): pytest.skip("Phase 6 acceptance requires PostgreSQL")
+    value=create_engine(url,pool_pre_ping=True)
+    try: yield value
+    finally: value.dispose()
 
 
 def phase6_ctx(tenant):
@@ -37,8 +47,7 @@ def warehouse_for(engine,tenant,location):
                           {"t":tenant,"l":location}).scalar_one()
 
 
-def test_stock_count_variance_posts_through_inventory_and_reconciles(postgres_engine):
-    engine=postgres_engine
+def test_stock_count_variance_posts_through_inventory_and_reconciles(engine):
     tenant,entity,branch,unit,product,a,_=seed(engine);context=phase6_ctx(tenant)
     opening(engine,context,entity,branch,product,unit,a,10);warehouse=warehouse_for(engine,tenant,a)
     with engine.begin() as db:
@@ -58,8 +67,7 @@ def test_stock_count_variance_posts_through_inventory_and_reconciles(postgres_en
         assert reconcile_inventory(db,tenant)==[]
 
 
-def test_stock_count_post_is_replay_safe_and_history_is_locked(postgres_engine):
-    engine=postgres_engine
+def test_stock_count_post_is_replay_safe_and_history_is_locked(engine):
     tenant,entity,branch,unit,product,a,_=seed(engine);context=phase6_ctx(tenant)
     opening(engine,context,entity,branch,product,unit,a,4);warehouse=warehouse_for(engine,tenant,a)
     with engine.begin() as db:
@@ -74,8 +82,7 @@ def test_stock_count_post_is_replay_safe_and_history_is_locked(postgres_engine):
     assert first==replay and balance(engine,tenant,product,a)==5
 
 
-def test_reorder_signal_does_not_create_procurement_document(postgres_engine):
-    engine=postgres_engine
+def test_reorder_signal_does_not_create_procurement_document(engine):
     tenant,entity,branch,unit,product,a,_=seed(engine);context=phase6_ctx(tenant)
     opening(engine,context,entity,branch,product,unit,a,2)
     with engine.begin() as db:
@@ -87,8 +94,7 @@ def test_reorder_signal_does_not_create_procurement_document(postgres_engine):
         assert db.execute(text("SELECT count(*) FROM inventory_transactions WHERE tenant_id=:t"),{"t":tenant}).scalar_one()==1
 
 
-def test_cross_tenant_reorder_reference_is_rejected(postgres_engine):
-    engine=postgres_engine
+def test_cross_tenant_reorder_reference_is_rejected(engine):
     t1,_,_,_,p1,a1,_=seed(engine);t2,_,_,_,_,a2,_=seed(engine);context=phase6_ctx(t1)
     assert t1!=t2 and a1!=a2
     with engine.begin() as db, pytest.raises(InventoryOperationsError):
