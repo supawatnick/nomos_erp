@@ -3,11 +3,11 @@
 > Operational handoff/source of truth. Read after AGENTS.md before every work session.
 
 ## Current stage
-Phase 5 — Inventory Web ERP
+Phase 6 — Inventory Operations / Internal ERP MVP
 
-Overall status: **PHASE 5 PASS — READY FOR PHASE 6**
+Overall status: **PHASE 6 PASS — INTERNAL INVENTORY ERP MVP COMPLETE — READY FOR PHASE 7**
 
-Primary objective: begin Phase 6 Stock Count, Reorder and Operational Reports on host 73 only, completing the planned Internal ERP MVP while preserving the four-core ERP contracts.
+Primary objective: begin Phase 7 Business Partners & CRM Foundation on host 73 only while preserving the completed Internal Inventory ERP MVP and four-core boundaries.
 
 ## Completed
 
@@ -73,6 +73,36 @@ Primary objective: begin Phase 6 Stock Count, Reorder and Operational Reports on
 - [x] Authenticated Authorization + X-Tenant-ID context.
 - [x] Web acceptance coverage for routes, headers, posting, error and retry behavior.
 - [x] Phase 5 review — docs/PHASE-5-REVIEW.md.
+
+### Phase 6 — Inventory Operations / Internal ERP MVP
+- [x] Stock-count document and immutable system snapshot.
+- [x] Physical count entry and variance calculation.
+- [x] Controlled count variance posting through Phase 4 ADJUST only.
+- [x] Posted count immutability and replay-safe posting.
+- [x] Stock-count source provenance, audit and outbox.
+- [x] Reorder policies by product/location.
+- [x] Low-stock/reorder actionable signals and suggested quantity.
+- [x] Procurement boundary preserved: no PR/RFQ/PO created by Inventory.
+- [x] Operational inventory summary and CSV export.
+- [x] Web operations/count/reorder/report surfaces.
+- [x] PostgreSQL and Web acceptance coverage.
+- [x] Phase 6 review — docs/PHASE-6-REVIEW.md.
+- [x] Internal Inventory ERP MVP scope (Phases 0–6) complete.
+
+## Phase 6 acceptance evidence
+- API Ruff: PASS.
+- API mypy strict: PASS.
+- Alembic upgrade through 0006_phase6_inventory_operations: PASS.
+- PostgreSQL suite: PASS, including stock-count/reorder acceptance.
+- Count snapshot/variance/ADJUST provenance/reconciliation: PASS.
+- Posted-count immutability and replay-safe posting: PASS.
+- Reorder signal and Procurement-boundary acceptance: PASS.
+- Cross-tenant reorder rejection: PASS.
+- pip-audit: PASS.
+- npm ci/audit high: PASS.
+- Web lint/typecheck/tests/build: PASS.
+- gitleaks: PASS.
+- Final documentation commit CI and host73 clean-state verification required for terminal closure.
 
 ## Phase 5 acceptance evidence
 - Host 73 Web lint: PASS before documentation closure.
@@ -150,18 +180,18 @@ Primary objective: begin Phase 6 Stock Count, Reorder and Operational Reports on
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Phase 6 stock count
-Implement stock-count documents, count lines, variance calculation and controlled adjustment posting through the Phase 4 engine.
+### NEXT 1 — Phase 7 partner identity
+Implement tenant-scoped business partner identity with customer/supplier roles, contacts and addresses.
 
-### NEXT 2 — Phase 6 reorder
-Implement reorder policy/threshold data and actionable replenishment views without bypassing Procurement boundaries.
+### NEXT 2 — Phase 7 CRM foundation
+Implement leads/opportunities, activities/notes and ownership without coupling to future Sales Orders.
 
-### NEXT 3 — Phase 6 operational reports / Internal ERP MVP gate
-Implement inventory operational reports and complete Internal ERP MVP acceptance, documentation and CI closure.
+### NEXT 3 — Phase 7 acceptance
+Verify customer+supplier dual role, tenant isolation, audit, Web workflows and CRM history before Phase 8 Procurement.
 
 ## Latest activity
 - Phase 3 Catalog and Warehouse implementation completed.
 - Phase 3 PostgreSQL/API/Web/security regression gate PASS in GitHub Actions run 36974731001.
 - Phase 3 review recorded in docs/PHASE-3-REVIEW.md.
 - Four-core ERP plan/framework/skills revision and Phase 0–3 alignment patch completed without invalidating Phase 0–3 acceptance.
-- Phase 4 Inventory Engine implemented with concurrency/idempotency/reconciliation acceptance and cross-core source contracts.\n- Phase 5 Inventory Web ERP implemented with operational stock/movement views and idempotent posting workflows.\n- Immediate next executable action is Phase 6 Stock Count, Reorder and Operational Reports on host 73.
+- Phase 4 Inventory Engine implemented with concurrency/idempotency/reconciliation acceptance and cross-core source contracts.\n- Phase 5 Inventory Web ERP implemented with operational stock/movement views and idempotent posting workflows.\n- Phase 6 Inventory Operations completed; Internal Inventory ERP MVP (Phases 0–6) is complete.\n- Immediate next executable action is Phase 7 Business Partners & CRM Foundation on host 73.
