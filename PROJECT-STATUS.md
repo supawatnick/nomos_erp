@@ -3,11 +3,11 @@
 > Operational handoff/source of truth. Read after AGENTS.md before every work session.
 
 ## Current stage
-Phase 7 — Business Partners & CRM Foundation
+Phase 0–7 Remediation Closure
 
-Overall status: **PHASE 7 PASS — READY FOR PHASE 8**
+Overall status: **PHASE 0–7 REMEDIATION PASS — READY FOR PHASE 8 AFTER FINAL DOC CI**
 
-Primary objective: begin Phase 8 Procurement & Purchasing on host 73 only, consuming shared supplier/partner identity and Inventory contracts without direct stock mutation.
+Primary objective: preserve the clean Phase 0–7 baseline, verify the final documentation CI, then begin Phase 8 Procurement & Purchasing on host 73 only.
 
 ## Completed
 
@@ -72,7 +72,7 @@ Primary objective: begin Phase 8 Procurement & Purchasing on host 73 only, consu
 - [x] Loading/empty/login/permission/insufficient-stock/conflict/network/success states.
 - [x] Authenticated Authorization + X-Tenant-ID context.
 - [x] Web acceptance coverage for routes, headers, posting, error and retry behavior.
-- [x] Phase 5 review — docs/PHASE-5-REVIEW.md.
+- [x] Users/Roles/Audit administration API + Web remediation completed.\n- [x] Phase 5 review + remediation addendum — docs/PHASE-5-REVIEW.md.
 
 ### Phase 6 — Inventory Operations / Internal ERP MVP
 - [x] Stock-count document and immutable system snapshot.
@@ -84,10 +84,10 @@ Primary objective: begin Phase 8 Procurement & Purchasing on host 73 only, consu
 - [x] Low-stock/reorder actionable signals and suggested quantity.
 - [x] Procurement boundary preserved: no PR/RFQ/PO created by Inventory.
 - [x] Operational inventory summary and CSV export.
-- [x] Web operations/count/reorder/report surfaces.
+- [x] Web operations/count/reorder/report surfaces.\n- [x] PRODUCT + OPENING_STOCK staged import/validate/preview/atomic commit remediation.\n- [x] Opening Stock permission corrected to inventory.adjust.
 - [x] PostgreSQL and Web acceptance coverage.
 - [x] Phase 6 review — docs/PHASE-6-REVIEW.md.
-- [x] Internal Inventory ERP MVP scope (Phases 0–6) complete.
+- [x] Internal Inventory ERP MVP scope (Phases 0–6) complete after remediation closure.
 
 ### Phase 7 — Business Partners & CRM Foundation
 - [x] Shared tenant-scoped Business Partner identity.
@@ -115,7 +115,7 @@ Primary objective: begin Phase 8 Procurement & Purchasing on host 73 only, consu
 - npm ci/audit high: PASS.
 - Web lint/typecheck/tests/build: PASS.
 - gitleaks: PASS.
-- Final documentation commit CI and host73 synchronization required for terminal closure.
+- Terminal Phase 7 evidence superseded by Phase 0–7 remediation acceptance and final documentation CI.
 
 ## Phase 6 acceptance evidence
 - API Ruff: PASS.
@@ -130,7 +130,7 @@ Primary objective: begin Phase 8 Procurement & Purchasing on host 73 only, consu
 - npm ci/audit high: PASS.
 - Web lint/typecheck/tests/build: PASS.
 - gitleaks: PASS.
-- Final documentation commit CI and host73 clean-state verification required for terminal closure.
+- Phase 6 closure reconciled by docs/PHASE-0-7-REMEDIATION.md and remediation CI.
 
 ## Phase 5 acceptance evidence
 - Host 73 Web lint: PASS before documentation closure.
@@ -139,7 +139,7 @@ Primary objective: begin Phase 8 Procurement & Purchasing on host 73 only, consu
 - npm ci/audit high: PASS.
 - Web lint/typecheck/tests/production build: PASS on Phase 5 implementation gate.
 - gitleaks: PASS.
-- Final documentation commit CI and host73 clean-state verification are required for terminal Phase 5 closure.
+- Phase 5 closure reconciled by docs/PHASE-0-7-REMEDIATION.md and remediation CI.
 
 ## Phase 4 acceptance evidence
 - API Ruff: PASS.
@@ -198,13 +198,7 @@ Primary objective: begin Phase 8 Procurement & Purchasing on host 73 only, consu
 - [x] Phase 0–3 alignment patch completed: data/ERD, document lifecycle, authorization namespaces, API/audit and numbering contracts now preserve the four-core design.
 - [x] Alignment review — docs/PHASE-0-3-ALIGNMENT.md.
 
-## Current blockers
-- None for Phase 4.
-- Platform safety gates may require permitted single-command SSH patterns; this is an execution-tool constraint, not an architecture blocker.
-
-## In progress / not yet passed
-- Phase 4 Inventory Engine has not started.
-- Two preserved pre-sync stashes remain on host 73 from conflicting local scaffold work; do not drop them until reviewed.
+## Phase 0–7 remediation closure\n- [x] R-01 Users/Roles/Audit Web/API gap closed.\n- [x] R-02 PRODUCT/OPENING_STOCK import lifecycle gap closed.\n- [x] R-03 stale project/phase status reconciled.\n- [x] R-04 remediation Web surfaces checked against WEB-DESIGN-CONTRACT.\n- [x] Implementation acceptance CI 36986274423 PASS (47 PostgreSQL/API tests plus full Web/security/dependency gate).\n- [ ] Final documentation reconciliation CI must be green before Phase 8 implementation starts.\n\n## Current blockers\n- Phase 8 is blocked only until the final documentation reconciliation commit CI is green.\n- Two preserved pre-sync stashes on host 73 remain an operational housekeeping item; do not drop them until reviewed.
 
 ## NEXT ACTIONS — execute in this order
 
@@ -217,7 +211,7 @@ Implement PO lifecycle, partial Goods Receipt/Return orchestration through Phase
 ### NEXT 3 — Phase 8 reconciliation
 Verify procurement status, remaining quantities, idempotent receipt/return, tenant isolation, audit and Web workflows.
 
-## Latest activity
+## Latest activity\n- Phase 0–7 remediation implemented: administration surfaces, staged imports, Opening Stock permission correction and acceptance tests.\n- Remediation implementation CI 36986274423 PASS.
 - Phase 3 Catalog and Warehouse implementation completed.
 - Phase 3 PostgreSQL/API/Web/security regression gate PASS in GitHub Actions run 36974731001.
 - Phase 3 review recorded in docs/PHASE-3-REVIEW.md.
