@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import Connection, text
 
+from app.application.numbering import allocate_document_number
 from app.domain.security import RequestContext, require_permission
 from app.infrastructure.platform import write_audit, write_outbox
 
@@ -159,3 +160,150 @@ def award_rfq(db: Connection, *, context: RequestContext, rfq_id: UUID, supplier
         version=version+1,updated_at=:now WHERE tenant_id=:t AND id=:id"""),
         {"supplier": supplier_id, "now": datetime.now(UTC), "t": context.tenant_id, "id": rfq_id})
     _audit(db, context, "procurement.rfq.awarded", "procurement_rfq", rfq_id, {"supplier_id": str(supplier_id)})
+
+
+def _po_fingerprint(supplier_id: UUID, currency_code: str, lines: list[dict]) -> str:
+    body = {
+        "supplier_id": str(supplier_id),
+        "currency_code": currency_code.upper(),
+        "lines": [
+            {
+                "product_id": str(line["product_id"]),
+                "unit_id": str(line["unit_id"]),
+                "quantity": format(Decimal(line["quantity"]), "f"),
+                "unit_price": format(Decimal(line["unit_price"]), "f"),
+                "discount_amount": format(Decimal(line.get("discount_amount", 0)), "f"),
+                "tax_amount": format(Decimal(line.get("tax_amount", 0)), "f"),
+            }
+            for line in lines
+        ],
+    }
+    return hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def create_purchase_order(
+    db: Connection, *, context: RequestContext, legal_entity_id: UUID, branch_id: UUID | None,
+    supplier_id: UUID, lines: list[dict], currency_code: str = "THB",
+    source_rfq_id: UUID | None = None, period_key: str | None = None,
+) -> UUID:
+    require_permission(context, "purchase_order.manage")
+    if not lines:
+        raise ProcurementError("purchase order requires lines")
+    organization = db.execute(text("""SELECT 1 FROM legal_entities le
+        LEFT JOIN branches b ON b.tenant_id=le.tenant_id AND b.legal_entity_id=le.id AND b.id=:branch
+        WHERE le.tenant_id=:t AND le.id=:entity AND le.status='ACTIVE'
+          AND (:branch IS NULL OR b.id IS NOT NULL)"""),
+        {"t": context.tenant_id, "entity": legal_entity_id, "branch": branch_id}).first()
+    if not organization:
+        raise ProcurementError("organization scope not found")
+    supplier = db.execute(text("""SELECT 1 FROM business_partners
+        WHERE tenant_id=:t AND id=:supplier AND is_supplier AND status='ACTIVE'"""),
+        {"t": context.tenant_id, "supplier": supplier_id}).first()
+    if not supplier:
+        raise ProcurementError("supplier not found")
+    if source_rfq_id:
+        rfq = db.execute(text("""SELECT awarded_supplier_id,currency_code FROM procurement_rfqs
+            WHERE tenant_id=:t AND id=:id AND status='AWARDED'"""),
+            {"t": context.tenant_id, "id": source_rfq_id}).mappings().first()
+        if not rfq or rfq["awarded_supplier_id"] != supplier_id:
+            raise ProcurementError("awarded RFQ not found for supplier")
+        if rfq["currency_code"] != currency_code.upper():
+            raise ProcurementError("purchase order currency must match RFQ")
+    normalized: list[dict] = []
+    for line in lines:
+        quantity = Decimal(line["quantity"])
+        unit_price = Decimal(line["unit_price"])
+        discount = Decimal(line.get("discount_amount", 0))
+        tax = Decimal(line.get("tax_amount", 0))
+        if quantity <= 0 or unit_price < 0 or discount < 0 or tax < 0:
+            raise ProcurementError("invalid purchase order line")
+        _product_unit_owned(db, context.tenant_id, line["product_id"], line["unit_id"])
+        gross = quantity * unit_price
+        if discount > gross:
+            raise ProcurementError("discount exceeds gross amount")
+        total = gross - discount + tax
+        normalized.append({**line, "quantity": quantity, "unit_price": unit_price,
+                           "discount_amount": discount, "tax_amount": tax, "line_total": total})
+    now = datetime.now(UTC)
+    number = allocate_document_number(
+        db, tenant_id=context.tenant_id, document_type="PO",
+        legal_entity_id=legal_entity_id, branch_id=branch_id,
+        period_key=period_key or str(now.year),
+    )
+    order_id = uuid4()
+    db.execute(text("""INSERT INTO purchase_orders
+        (id,tenant_id,order_number,legal_entity_id,branch_id,supplier_id,source_rfq_id,currency_code,
+         status,version,created_at,updated_at)
+        VALUES (:id,:t,:number,:entity,:branch,:supplier,:rfq,:currency,'DRAFT',1,:now,:now)"""),
+        {"id": order_id, "t": context.tenant_id, "number": number, "entity": legal_entity_id,
+         "branch": branch_id, "supplier": supplier_id, "rfq": source_rfq_id,
+         "currency": currency_code.upper(), "now": now})
+    for line_number, line in enumerate(normalized, 1):
+        db.execute(text("""INSERT INTO purchase_order_lines
+            (id,tenant_id,purchase_order_id,line_number,product_id,unit_id,ordered_quantity,
+             unit_price,discount_amount,tax_amount,line_total,received_quantity,returned_quantity)
+            VALUES (:id,:t,:po,:line,:product,:unit,:quantity,:price,:discount,:tax,:total,0,0)"""),
+            {"id": uuid4(), "t": context.tenant_id, "po": order_id, "line": line_number,
+             "product": line["product_id"], "unit": line["unit_id"], "quantity": line["quantity"],
+             "price": line["unit_price"], "discount": line["discount_amount"],
+             "tax": line["tax_amount"], "total": line["line_total"]})
+    _audit(db, context, "procurement.order.created", "purchase_order", order_id,
+           {"order_number": number, "currency_code": currency_code.upper()})
+    write_outbox(db, tenant_id=context.tenant_id, aggregate_type="purchase_order", aggregate_id=order_id,
+                 event_type="procurement.order.created", payload={"purchase_order_id": str(order_id)})
+    return order_id
+
+
+def submit_purchase_order(db: Connection, *, context: RequestContext, order_id: UUID) -> None:
+    require_permission(context, "purchase_order.manage")
+    row = db.execute(text("""SELECT status FROM purchase_orders
+        WHERE tenant_id=:t AND id=:id FOR UPDATE"""),
+        {"t": context.tenant_id, "id": order_id}).mappings().first()
+    if not row:
+        raise ProcurementError("purchase order not found")
+    if row["status"] != "DRAFT":
+        raise ProcurementError("purchase order must be DRAFT to submit")
+    db.execute(text("""UPDATE purchase_orders SET status='PENDING_APPROVAL',version=version+1,
+        approval_fingerprint=NULL,approved_version=NULL,approved_at=NULL,approved_by_tenant_user_id=NULL,
+        updated_at=:now WHERE tenant_id=:t AND id=:id"""),
+        {"now": datetime.now(UTC), "t": context.tenant_id, "id": order_id})
+    _audit(db, context, "procurement.order.submitted", "purchase_order", order_id)
+
+
+def approve_purchase_order(db: Connection, *, context: RequestContext, order_id: UUID) -> None:
+    require_permission(context, "purchase_order.approve")
+    order = db.execute(text("""SELECT status,version,supplier_id,currency_code FROM purchase_orders
+        WHERE tenant_id=:t AND id=:id FOR UPDATE"""),
+        {"t": context.tenant_id, "id": order_id}).mappings().first()
+    if not order:
+        raise ProcurementError("purchase order not found")
+    if order["status"] != "PENDING_APPROVAL":
+        raise ProcurementError("purchase order must be pending approval")
+    rows = db.execute(text("""SELECT product_id,unit_id,ordered_quantity quantity,unit_price,
+        discount_amount,tax_amount FROM purchase_order_lines
+        WHERE tenant_id=:t AND purchase_order_id=:id ORDER BY line_number"""),
+        {"t": context.tenant_id, "id": order_id}).mappings().all()
+    fingerprint = _po_fingerprint(order["supplier_id"], order["currency_code"], [dict(row) for row in rows])
+    approved_version = int(order["version"])
+    db.execute(text("""UPDATE purchase_orders SET status='APPROVED',version=version+1,
+        approval_fingerprint=:fingerprint,approved_version=:approved_version,approved_at=:now,
+        approved_by_tenant_user_id=:actor,updated_at=:now WHERE tenant_id=:t AND id=:id"""),
+        {"fingerprint": fingerprint, "approved_version": approved_version, "now": datetime.now(UTC),
+         "actor": context.tenant_user_id, "t": context.tenant_id, "id": order_id})
+    _audit(db, context, "procurement.order.approved", "purchase_order", order_id,
+           {"approved_version": approved_version, "fingerprint": fingerprint})
+
+
+def send_purchase_order(db: Connection, *, context: RequestContext, order_id: UUID) -> None:
+    require_permission(context, "purchase_order.manage")
+    order = db.execute(text("""SELECT status FROM purchase_orders
+        WHERE tenant_id=:t AND id=:id FOR UPDATE"""),
+        {"t": context.tenant_id, "id": order_id}).mappings().first()
+    if not order:
+        raise ProcurementError("purchase order not found")
+    if order["status"] != "APPROVED":
+        raise ProcurementError("purchase order must be APPROVED to send")
+    db.execute(text("""UPDATE purchase_orders SET status='SENT',version=version+1,updated_at=:now
+        WHERE tenant_id=:t AND id=:id"""),
+        {"now": datetime.now(UTC), "t": context.tenant_id, "id": order_id})
+    _audit(db, context, "procurement.order.sent", "purchase_order", order_id)
