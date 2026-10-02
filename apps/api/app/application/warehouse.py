@@ -16,9 +16,9 @@ class WarehouseRepository:
             text("""
                 SELECT id,code,name,legal_entity_id,branch_id,status,updated_at
                 FROM warehouses WHERE tenant_id=:tenant
-                  AND (:status IS NULL OR status=:status)
-                  AND (:search IS NULL OR code ILIKE :pattern OR name ILIKE :pattern)
-                  AND (:after IS NULL OR id > :after)
+                  AND (CAST(:status AS text) IS NULL OR status=:status)
+                  AND (CAST(:search AS text) IS NULL OR code ILIKE :pattern OR name ILIKE :pattern)
+                  AND (CAST(:after AS uuid) IS NULL OR id > :after)
                 ORDER BY id ASC LIMIT :limit
             """),
             {"tenant": tenant_id, "status": status, "search": search,
