@@ -37,15 +37,15 @@ class PRLineIn(BaseModel):
 
 
 class PRIn(BaseModel):
-    request_number: str = Field(min_length=1, max_length=80)
     needed_by: date | None = None
+    period_key: str | None = Field(default=None, min_length=1, max_length=32)
     reason: str | None = None
     lines: list[PRLineIn] = Field(min_length=1)
 
 
 class RFQIn(BaseModel):
-    rfq_number: str = Field(min_length=1, max_length=80)
     purchase_request_id: UUID | None = None
+    period_key: str | None = Field(default=None, min_length=1, max_length=32)
     supplier_ids: list[UUID] = Field(min_length=1)
     currency_code: str = Field(default="THB", min_length=3, max_length=3)
     response_due_date: date | None = None
@@ -105,8 +105,8 @@ def request_create(payload: PRIn, request: Request, authorization: str | None = 
     context = _ctx(request, authorization, x_tenant_id)
     try:
         with _engine().begin() as db:
-            rid = create_purchase_request(db, context=context, request_number=payload.request_number,
-                needed_by=payload.needed_by, reason=payload.reason,
+            rid = create_purchase_request(db, context=context, needed_by=payload.needed_by,
+                reason=payload.reason, period_key=payload.period_key,
                 lines=[line.model_dump() for line in payload.lines])
     except IntegrityError as exc:
         raise HTTPException(409, detail={"code": "DUPLICATE_RESOURCE"}) from exc
