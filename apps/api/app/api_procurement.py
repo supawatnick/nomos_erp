@@ -18,6 +18,7 @@ from app.application.procurement import (
     post_goods_receipt,
     post_purchase_return,
     record_supplier_quote,
+    request_purchase_order_approval,
     send_purchase_order,
     send_rfq,
     submit_purchase_order,
@@ -285,13 +286,35 @@ def order_submit(order_id: UUID, request: Request, authorization: str | None = H
     return {"data": {"id": str(order_id), "status": "PENDING_APPROVAL"}}
 
 
+class POApprovalRequestIn(BaseModel):
+    policy_code: str = Field(min_length=1, max_length=80)
+
+
+class POApproveIn(BaseModel):
+    approval_request_id: UUID | None = None
+
+
+@router.post("/orders/{order_id}/request-approval", status_code=201)
+def order_request_approval(order_id: UUID, payload: POApprovalRequestIn, request: Request,
+                           authorization: str | None = Header(default=None),
+                           x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
+    context = _ctx(request, authorization, x_tenant_id)
+    try:
+        with _engine().begin() as db:
+            approval_id = request_purchase_order_approval(
+                db, context=context, order_id=order_id, policy_code=payload.policy_code)
+    except (ProcurementError, ValueError) as exc:
+        raise HTTPException(409, detail={"code": "INVALID_DOCUMENT_STATE", "message": str(exc)}) from exc
+    return {"data": {"id": str(approval_id), "status": "PENDING"}}
+
+
 @router.post("/orders/{order_id}/approve")
-def order_approve(order_id: UUID, request: Request, authorization: str | None = Header(default=None),
+def order_approve(order_id: UUID, payload: POApproveIn, request: Request, authorization: str | None = Header(default=None),
                   x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
     context = _ctx(request, authorization, x_tenant_id)
     try:
         with _engine().begin() as db:
-            approve_purchase_order(db, context=context, order_id=order_id)
+            approve_purchase_order(db, context=context, order_id=order_id, approval_request_id=payload.approval_request_id)
     except ProcurementError as exc:
         raise HTTPException(409, detail={"code": "INVALID_DOCUMENT_STATE", "message": str(exc)}) from exc
     return {"data": {"id": str(order_id), "status": "APPROVED"}}
