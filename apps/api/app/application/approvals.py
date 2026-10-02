@@ -34,8 +34,11 @@ def create_policy(
     steps_required: int = 1,
     prohibit_self_approval: bool = True,
     expires_after_hours: int | None = None,
+    steps: list[dict[str, str]] | None = None,
 ) -> UUID:
     require_permission(context, "approval.policy.manage")
+    if steps:
+        steps_required = len(steps)
     if steps_required < 1 or (expires_after_hours is not None and expires_after_hours < 1):
         raise ApprovalError("invalid approval policy")
     policy_id, now = uuid4(), datetime.now(UTC)
@@ -48,6 +51,16 @@ def create_policy(
          "type": request_type, "permission": required_permission, "steps": steps_required,
          "self": prohibit_self_approval, "expiry": expires_after_hours, "now": now},
     )
+    configured_steps = steps or [{"name": f"Step {number}", "required_permission": required_permission}
+                                 for number in range(1, steps_required + 1)]
+    for number, step in enumerate(configured_steps, 1):
+        db.execute(
+            text("""INSERT INTO approval_policy_steps
+            (id,tenant_id,policy_id,step_number,name,required_permission,created_at)
+            VALUES (:id,:tenant,:policy,:number,:name,:permission,:now)"""),
+            {"id": uuid4(), "tenant": context.tenant_id, "policy": policy_id, "number": number,
+             "name": step["name"], "permission": step["required_permission"], "now": now},
+        )
     write_audit(
         db, tenant_id=context.tenant_id, request_id=context.request_id,
         action="approval.policy.created", actor_user_id=context.actor_user_id,
@@ -125,7 +138,7 @@ def decide_approval(
         raise ApprovalError("invalid approval decision")
     row = db.execute(
         text("""SELECT r.status,r.requester_tenant_user_id,r.current_step,r.expires_at,
-                      p.steps_required,p.prohibit_self_approval,p.required_permission
+                      p.steps_required,p.prohibit_self_approval
         FROM approval_requests r JOIN approval_policies p
           ON p.tenant_id=r.tenant_id AND p.id=r.policy_id
         WHERE r.tenant_id=:tenant AND r.id=:id FOR UPDATE OF r"""),
@@ -150,7 +163,15 @@ def decide_approval(
             {"now": now, "tenant": context.tenant_id, "id": approval_request_id},
         )
         raise ApprovalError("approval request expired")
-    require_permission(context, str(row["required_permission"]))
+    step_rule = db.execute(
+        text("""SELECT required_permission FROM approval_policy_steps s
+        JOIN approval_requests r ON r.tenant_id=s.tenant_id AND r.policy_id=s.policy_id
+        WHERE r.tenant_id=:tenant AND r.id=:request AND s.step_number=:step"""),
+        {"tenant": context.tenant_id, "request": approval_request_id, "step": int(row["current_step"])},
+    ).scalar_one_or_none()
+    if not step_rule:
+        raise ApprovalError("approval policy step not found")
+    require_permission(context, str(step_rule))
     if row["prohibit_self_approval"] and row["requester_tenant_user_id"] == context.tenant_user_id:
         raise ApprovalError("self approval is prohibited")
     step = int(row["current_step"])
