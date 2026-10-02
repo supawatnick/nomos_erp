@@ -59,11 +59,6 @@ def archive_location(
         text("""
             UPDATE warehouse_locations SET status='ARCHIVED',archived_at=:now,updated_at=:now
             WHERE tenant_id=:tenant AND id=:id AND status<>'ARCHIVED'
-              AND NOT EXISTS (
-                SELECT 1 FROM inventory_balances b
-                WHERE b.tenant_id=warehouse_locations.tenant_id
-                  AND b.location_id=warehouse_locations.id AND b.on_hand<>0
-              )
         """),
         {"now": now, "tenant": context.tenant_id, "id": location_id},
     )
