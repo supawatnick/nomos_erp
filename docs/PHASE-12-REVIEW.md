@@ -70,7 +70,14 @@ Phase 12 implementation gate: GitHub Actions run `37011808602` — **SUCCESS**.
 - Payments settle Finance subledger only and do not alter stock.
 
 ## Exit gate
-**PASS.** Finance now owns balanced, idempotent, auditable financial effects with fiscal-period control, AR/AP allocation and reconciliation foundations, plus Inventory valuation integration. Core ERP V1 four-core gate (Phases 0–12) is met subject to final documentation CI and host 73 runtime synchronization.
+**PASS.** Finance now owns balanced, idempotent, auditable financial effects with fiscal-period control, AR/AP allocation and reconciliation foundations, plus Inventory valuation integration. Core ERP V1 four-core gate (Phases 0–12) is met. Final documentation CI and host 73 runtime synchronization are green.
+
+## Final closure evidence
+- Final documentation CI run `37012089058`: **SUCCESS**.
+- Host 73 Alembic: `0018_phase12_posting_rules (head)`.
+- Host 73 PostgreSQL/API suite: **75 passed**.
+- Host 73 Git divergence: **0 ahead / 0 behind**; working tree clean.
+- Historical stashes remained preserved and untouched.
 
 ## Handoff
-Run final documentation CI, synchronize host 73 through Alembic 0018 and full PostgreSQL suite, then Phase 13 LINE may begin.
+Phase 12 is fully closed and runtime-synchronized. **Core ERP V1 gate is met and Phase 13 LINE is READY TO START.**
