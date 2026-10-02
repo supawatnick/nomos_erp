@@ -3,7 +3,6 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy import create_engine, text
-
 from test_phase4_inventory import balance, ctx, seed
 
 from app.application.inventory import StockLine, post_inventory, reconcile_inventory
