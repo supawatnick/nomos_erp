@@ -21,9 +21,9 @@ class CatalogRepository:
                 SELECT id,sku,name,product_type,tracking_type,status,category_id,base_unit_id,updated_at
                 FROM products
                 WHERE tenant_id=:tenant
-                  AND (:status IS NULL OR status=:status)
-                  AND (:search IS NULL OR sku ILIKE :pattern OR name ILIKE :pattern)
-                  AND (:after IS NULL OR id > :after)
+                  AND (CAST(:status AS text) IS NULL OR status=:status)
+                  AND (CAST(:search AS text) IS NULL OR sku ILIKE :pattern OR name ILIKE :pattern)
+                  AND (CAST(:after AS uuid) IS NULL OR id > :after)
                 ORDER BY {order} LIMIT :limit
             """
         rows = connection.execute(
