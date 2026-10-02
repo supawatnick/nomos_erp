@@ -77,9 +77,16 @@ def test_pr_rfq_quote_award_has_no_inventory_side_effect(engine):
         transition_purchase_request(db, context=context, request_id=pr, status="APPROVED")
         rfq = create_rfq(db, context=context, rfq_number="RFQ-"+uuid4().hex[:8], purchase_request_id=pr,
                          supplier_ids=[s1, s2], currency_code="THB")
+        rfq_line = db.execute(text("""SELECT id FROM procurement_rfq_lines
+            WHERE tenant_id=:t AND rfq_id=:rfq"""), {"t": tenant, "rfq": rfq}).scalar_one()
         send_rfq(db, context=context, rfq_id=rfq)
-        record_supplier_quote(db, context=context, rfq_id=rfq, supplier_id=s1, quoted_total=Decimal("1250.25"))
-        record_supplier_quote(db, context=context, rfq_id=rfq, supplier_id=s2, quoted_total=Decimal("1300.00"))
+        record_supplier_quote(db, context=context, rfq_id=rfq, supplier_id=s1,
+            lines=[{"rfq_line_id": rfq_line, "offered_quantity": Decimal("2.5"),
+                    "unit_price": Decimal("500.10"), "discount_amount": Decimal("0"),
+                    "tax_amount": Decimal("0")}])
+        record_supplier_quote(db, context=context, rfq_id=rfq, supplier_id=s2,
+            lines=[{"rfq_line_id": rfq_line, "offered_quantity": Decimal("2.5"),
+                    "unit_price": Decimal("520.00")}])
         award_rfq(db, context=context, rfq_id=rfq, supplier_id=s1)
         after = db.execute(text("SELECT count(*) FROM inventory_transactions WHERE tenant_id=:t"), {"t": tenant}).scalar_one()
         assert after == before
@@ -89,6 +96,11 @@ def test_pr_rfq_quote_award_has_no_inventory_side_effect(engine):
         assert row["status"] == "AWARDED" and row["awarded_supplier_id"] == s1
         assert db.execute(text("""SELECT count(*) FROM procurement_rfq_suppliers
             WHERE tenant_id=:t AND rfq_id=:id AND status='AWARDED'"""), {"t": tenant, "id": rfq}).scalar_one() == 1
+        comparison = db.execute(text("""SELECT l.line_total FROM procurement_rfq_supplier_lines l
+            JOIN procurement_rfq_suppliers s ON s.tenant_id=l.tenant_id AND s.id=l.rfq_supplier_id
+            WHERE l.tenant_id=:t AND s.rfq_id=:rfq AND s.supplier_id=:supplier"""),
+            {"t": tenant, "rfq": rfq, "supplier": s1}).scalar_one()
+        assert Decimal(comparison) == Decimal("1250.25000000")
 
 
 def test_cross_tenant_supplier_cannot_be_invited(engine):
