@@ -82,7 +82,7 @@ Implementation acceptance GitHub Actions run **36986274423** on commit `87386d7d
 - remediation Web route/behavior tests: PASS.
 - gitleaks: PASS.
 
-A final documentation-only CI run is required after the status/review reconciliation commit; its run ID is recorded in PROJECT-STATUS.md after verification.
+Documentation reconciliation CI **36986587027**: PASS. Latest remediation migration CI **36986937445** on commit `c32a0e234cf31540e0c0275d25f93c90479b35ab`: PASS. The Phase 0–7 baseline is clean and unblocked for Phase 8.
 
 ## Phase 8 gate
 The functional Phase 0–7 remediation gate is closed. Phase 8 Procurement may begin only from a green final documentation commit and must continue to consume Phase 7 supplier identity and Phase 4 Inventory contracts without direct stock mutation.
