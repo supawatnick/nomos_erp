@@ -1,6 +1,6 @@
 # Phase 1 Engineering Foundation
 
-Verified on host 73 only: Ubuntu 24.04, Node.js 18.19.1, npm 9.2.0, Python 3.12.3, Docker 29.1.3, Docker Compose 2.40.3, PostgreSQL 17 container, Git 2.43.0.
+Verified on host 73 only: Ubuntu 24.04, Node.js 22.23.3, npm 10.9.9, Python 3.12.3, Docker 29.1.3, Docker Compose 2.40.3, PostgreSQL 17 container, Git 2.43.0.
 
 Host 72 is control/orchestration only.
 
