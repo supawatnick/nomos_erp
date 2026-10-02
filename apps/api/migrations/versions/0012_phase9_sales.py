@@ -84,6 +84,12 @@ def upgrade():
         sa.ForeignKeyConstraint(["tenant_id","location_id"],["warehouse_locations.tenant_id","warehouse_locations.id"]),
         sa.UniqueConstraint("tenant_id","id"),sa.CheckConstraint("quantity > 0 AND fulfilled_quantity >= 0 AND fulfilled_quantity <= quantity",name="ck_sales_reservation_quantity"),
         sa.CheckConstraint("status IN ('ACTIVE','RELEASED','FULFILLED')",name="ck_sales_reservation_status"))
+    op.create_table("sales_order_events",
+        sa.Column("id",sa.Uuid(),primary_key=True),sa.Column("tenant_id",sa.Uuid(),nullable=False),
+        sa.Column("sales_order_id",sa.Uuid(),nullable=False),sa.Column("event_type",sa.String(48),nullable=False),
+        sa.Column("from_status",sa.String(24)),sa.Column("to_status",sa.String(24)),sa.Column("occurred_at",sa.DateTime(timezone=True),nullable=False),
+        sa.Column("actor_tenant_user_id",sa.Uuid()),sa.ForeignKeyConstraint(["tenant_id","sales_order_id"],["sales_orders.tenant_id","sales_orders.id"],ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["tenant_id","actor_tenant_user_id"],["tenant_users.tenant_id","tenant_users.id"]),sa.UniqueConstraint("tenant_id","id"))
     op.create_table("sales_deliveries",
         sa.Column("id",sa.Uuid(),primary_key=True),sa.Column("tenant_id",sa.Uuid(),nullable=False),
         sa.Column("delivery_number",sa.String(80),nullable=False),sa.Column("sales_order_id",sa.Uuid(),nullable=False),
@@ -130,5 +136,5 @@ def upgrade():
 
 def downgrade():
     op.drop_table("sales_return_lines");op.drop_table("sales_returns");op.drop_table("sales_delivery_lines");op.drop_table("sales_deliveries")
-    op.drop_table("sales_reservations");op.drop_table("sales_order_lines");op.drop_table("sales_orders")
+    op.drop_table("sales_order_events");op.drop_table("sales_reservations");op.drop_table("sales_order_lines");op.drop_table("sales_orders")
     op.drop_table("sales_quotation_lines");op.drop_table("sales_quotation_revisions");op.drop_table("sales_quotations")
