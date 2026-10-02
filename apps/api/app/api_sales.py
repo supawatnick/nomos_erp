@@ -8,8 +8,15 @@ from sqlalchemy import create_engine, text
 
 from app.application.auth import trusted_context
 from app.application.sales import (
-    SalesError, accept_quotation, confirm_order, create_quotation, post_delivery,
-    post_sales_return, reserve_order, revise_quotation, send_quotation,
+    SalesError,
+    accept_quotation,
+    confirm_order,
+    create_quotation,
+    post_delivery,
+    post_sales_return,
+    reserve_order,
+    revise_quotation,
+    send_quotation,
 )
 from app.core.config import get_settings
 from app.domain.security import require_permission
