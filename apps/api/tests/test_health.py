@@ -1,7 +1,3 @@
-import os
-
-os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
-
 from fastapi.testclient import TestClient
 
 from app.main import app
