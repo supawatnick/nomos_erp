@@ -8,8 +8,9 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/*.test.mjs",
-    "e2e": "playwright test"
+    "test": "node --test tests/contract.test.mjs",
+    "e2e": "playwright test",
+    "test:runtime": "node --test tests/runtime.test.mjs"
   },
   "dependencies": {
     "next": "^16.3.8",
