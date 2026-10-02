@@ -10,11 +10,15 @@ from sqlalchemy.exc import IntegrityError
 from app.api_master import trusted_context
 from app.application.procurement import (
     ProcurementError,
+    approve_purchase_order,
     award_rfq,
+    create_purchase_order,
     create_purchase_request,
     create_rfq,
     record_supplier_quote,
+    send_purchase_order,
     send_rfq,
+    submit_purchase_order,
     transition_purchase_request,
 )
 from app.core.config import get_settings
@@ -174,3 +178,83 @@ def rfq_award(rfq_id: UUID, supplier_id: UUID, request: Request,
     except ProcurementError as exc:
         raise HTTPException(409, detail={"code": "INVALID_DOCUMENT_STATE", "message": str(exc)}) from exc
     return {"data": {"id": str(rfq_id), "status": "AWARDED", "supplier_id": str(supplier_id)}}
+
+
+class POLineIn(BaseModel):
+    product_id: UUID
+    unit_id: UUID
+    quantity: Decimal = Field(gt=0)
+    unit_price: Decimal = Field(ge=0)
+    discount_amount: Decimal = Field(default=Decimal(0), ge=0)
+    tax_amount: Decimal = Field(default=Decimal(0), ge=0)
+
+
+class POIn(BaseModel):
+    legal_entity_id: UUID
+    branch_id: UUID | None = None
+    supplier_id: UUID
+    source_rfq_id: UUID | None = None
+    currency_code: str = Field(default="THB", min_length=3, max_length=3)
+    period_key: str | None = Field(default=None, min_length=1, max_length=32)
+    lines: list[POLineIn] = Field(min_length=1)
+
+
+@router.get("/orders")
+def orders(request: Request, authorization: str | None = Header(default=None),
+           x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
+    context = _ctx(request, authorization, x_tenant_id)
+    require_permission(context, "procurement.read")
+    with _engine().connect() as db:
+        rows = db.execute(text("""SELECT id,order_number,legal_entity_id,branch_id,supplier_id,source_rfq_id,
+            currency_code,status,version,approved_version,approved_at,updated_at
+            FROM purchase_orders WHERE tenant_id=:t ORDER BY updated_at DESC"""),
+            {"t": context.tenant_id}).mappings().all()
+    return {"data": _serialize(rows), "meta": {"request_id": str(context.request_id)}}
+
+
+@router.post("/orders", status_code=201)
+def order_create(payload: POIn, request: Request, authorization: str | None = Header(default=None),
+                 x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
+    context = _ctx(request, authorization, x_tenant_id)
+    try:
+        with _engine().begin() as db:
+            order_id = create_purchase_order(db, context=context, **payload.model_dump())
+    except (ProcurementError, ValueError, IntegrityError) as exc:
+        raise HTTPException(409, detail={"code": "VALIDATION_FAILED", "message": str(exc)}) from exc
+    return {"data": {"id": str(order_id)}, "meta": {"request_id": str(context.request_id)}}
+
+
+@router.post("/orders/{order_id}/submit")
+def order_submit(order_id: UUID, request: Request, authorization: str | None = Header(default=None),
+                 x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
+    context = _ctx(request, authorization, x_tenant_id)
+    try:
+        with _engine().begin() as db:
+            submit_purchase_order(db, context=context, order_id=order_id)
+    except ProcurementError as exc:
+        raise HTTPException(409, detail={"code": "INVALID_DOCUMENT_STATE", "message": str(exc)}) from exc
+    return {"data": {"id": str(order_id), "status": "PENDING_APPROVAL"}}
+
+
+@router.post("/orders/{order_id}/approve")
+def order_approve(order_id: UUID, request: Request, authorization: str | None = Header(default=None),
+                  x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
+    context = _ctx(request, authorization, x_tenant_id)
+    try:
+        with _engine().begin() as db:
+            approve_purchase_order(db, context=context, order_id=order_id)
+    except ProcurementError as exc:
+        raise HTTPException(409, detail={"code": "INVALID_DOCUMENT_STATE", "message": str(exc)}) from exc
+    return {"data": {"id": str(order_id), "status": "APPROVED"}}
+
+
+@router.post("/orders/{order_id}/send")
+def order_send(order_id: UUID, request: Request, authorization: str | None = Header(default=None),
+               x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID")):
+    context = _ctx(request, authorization, x_tenant_id)
+    try:
+        with _engine().begin() as db:
+            send_purchase_order(db, context=context, order_id=order_id)
+    except ProcurementError as exc:
+        raise HTTPException(409, detail={"code": "INVALID_DOCUMENT_STATE", "message": str(exc)}) from exc
+    return {"data": {"id": str(order_id), "status": "SENT"}}
