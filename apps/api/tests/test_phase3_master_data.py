@@ -81,7 +81,7 @@ def test_catalog_same_tenant_and_duplicate_constraints(db):
 def test_exact_conversion_validation():
     validate_conversion(Decimal("1.25000000"))
     with pytest.raises(ValueError):
-        validate_conversion(Decimal("0"))
+        validate_conversion(Decimal(0))
     with pytest.raises(ValueError):
         validate_conversion(Decimal("1.000000001"))
 
