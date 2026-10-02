@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import {useEffect,useState} from "react";
+import {useCallback,useEffect,useState} from "react";
 import {apiError,authHeaders,newIdempotencyKey} from "../inventory/client";
 type Q={id:string;quotation_number:string;customer_id:string;status:string;current_revision:number;total_amount:string;currency_code:string};
 type O={id:string;order_number:string;status:string;source_quotation_id:string;source_quotation_revision:number};
@@ -9,8 +9,8 @@ export default function Sales(){
  const [quotes,setQuotes]=useState<Q[]>([]),[orders,setOrders]=useState<O[]>([]),[lines,setLines]=useState<L[]>([]);
  const [selected,setSelected]=useState(""),[location,setLocation]=useState(""),[line,setLine]=useState(""),[qty,setQty]=useState("");
  const [error,setError]=useState(""),[message,setMessage]=useState("");const base=process.env.NEXT_PUBLIC_API_URL??"";
- async function load(){const h=authHeaders();if(!h){setError("กรุณาเข้าสู่ระบบ");return}const [q,o]=await Promise.all([fetch(base+"/api/v1/sales/quotations",{headers:h}),fetch(base+"/api/v1/sales/orders",{headers:h})]);if(!q.ok||!o.ok){setError(await apiError(!q.ok?q:o));return}setQuotes((await q.json()).data);setOrders((await o.json()).data)}
- useEffect(()=>{queueMicrotask(load)},[]);
+ const load=useCallback(async ()=>{const h=authHeaders();if(!h){setError("กรุณาเข้าสู่ระบบ");return}const [q,o]=await Promise.all([fetch(base+"/api/v1/sales/quotations",{headers:h}),fetch(base+"/api/v1/sales/orders",{headers:h})]);if(!q.ok||!o.ok){setError(await apiError(!q.ok?q:o));return}setQuotes((await q.json()).data);setOrders((await o.json()).data)},[base]);
+ useEffect(()=>{queueMicrotask(load)},[load]);
  async function choose(id:string){setSelected(id);const h=authHeaders();if(!h)return;const r=await fetch(base+"/api/v1/sales/orders/"+id+"/lines",{headers:h});if(!r.ok){setError(await apiError(r));return}setLines((await r.json()).data)}
  async function movement(kind:"reserve"|"deliveries"|"returns"){setError("");setMessage("");const h=authHeaders();if(!h||!selected||!line)return;const headers:Record<string,string>={...h,"Content-Type":"application/json"};if(kind!=="reserve")headers["Idempotency-Key"]=newIdempotencyKey(kind);const r=await fetch(base+"/api/v1/sales/orders/"+selected+"/"+kind,{method:"POST",headers,body:JSON.stringify({location_id:location,lines:[{sales_order_line_id:line,quantity:qty}]})});if(!r.ok){setError(await apiError(r));return}setMessage(kind==="reserve"?"Stock reserved":kind==="deliveries"?"Delivery posted":"Sales return posted");await load();await choose(selected)}
  return <main className="erp-main"><p className="eyebrow">NOMOS ERP · SALES & CRM</p><h1>Sales Operations</h1><p>Quotation acceptance is traceable to an exact revision. Reservation changes availability only; delivery and return commit physical stock through Inventory.</p>{error&&<p className="error" role="alert">{error}</p>}{message&&<p aria-live="polite">{message}</p>}
