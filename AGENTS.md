@@ -98,3 +98,24 @@ Before implementing a module, read the relevant file under docs/ and skill under
 - `docs/MASTER-PLAN.md` is the authoritative phase/release plan.
 - Phase 0 architecture contracts include `docs/DOMAIN.md`, `docs/DATA-MODEL.md`, `docs/DOCUMENT-LIFECYCLE.md`, `docs/AUTHORIZATION.md`, `docs/ACCOUNTING-BOUNDARY.md`, `docs/MODULES.md`, `docs/NUMBERING.md`, `docs/ERROR-CODES.md`, and `docs/OPERATIONS.md`.
 - Do not start a later implementation phase merely because its UI is understood; satisfy the prior phase exit gate first.
+
+
+## Mandatory execution-status procedure
+
+`PROJECT-STATUS.md` is the operational handoff and next-action source of truth.
+
+Before every NOMOS work session:
+1. Read `AGENTS.md`.
+2. Read `PROJECT-STATUS.md`.
+3. Read the docs/skills relevant to the current next action.
+
+At the end of every meaningful work session, update `PROJECT-STATUS.md` with:
+- work completed
+- checks/exit gates that passed
+- blockers or failures
+- work still in progress
+- decisions that became authoritative
+- ordered NEXT ACTIONS, with NEXT 1 being the actual next executable task
+- latest meaningful result/handoff
+
+Do not leave a session without a clear next action unless the project is complete or explicitly blocked pending user/external input.
