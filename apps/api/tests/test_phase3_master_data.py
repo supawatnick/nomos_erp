@@ -49,12 +49,12 @@ def unit(db, tenant_id):
 def organization(db, tenant_id):
     now, entity_id, branch_id = datetime.now(UTC), uuid4(), uuid4()
     db.execute(
-        text("INSERT INTO legal_entities (id,tenant_id,code,legal_name,country_code,base_currency,timezone,status,created_at,updated_at) VALUES (:id,:tenant,'LE','Legal','TH','THB','Asia/Bangkok','ACTIVE',:now,:now)"),
-        {"id": entity_id, "tenant": tenant_id, "now": now},
+        text("INSERT INTO legal_entities (id,tenant_id,code,legal_name,country_code,base_currency,timezone,status,created_at,updated_at) VALUES (:id,:tenant,:code,'Legal','TH','THB','Asia/Bangkok','ACTIVE',:now,:now)"),
+        {"id": entity_id, "tenant": tenant_id, "code": "LE-" + entity_id.hex[:8], "now": now},
     )
     db.execute(
-        text("INSERT INTO branches (id,tenant_id,legal_entity_id,code,name,status,created_at,updated_at) VALUES (:id,:tenant,:entity,'B','Branch','ACTIVE',:now,:now)"),
-        {"id": branch_id, "tenant": tenant_id, "entity": entity_id, "now": now},
+        text("INSERT INTO branches (id,tenant_id,legal_entity_id,code,name,status,created_at,updated_at) VALUES (:id,:tenant,:entity,:code,'Branch','ACTIVE',:now,:now)"),
+        {"id": branch_id, "tenant": tenant_id, "entity": entity_id, "code": "B-" + branch_id.hex[:8], "now": now},
     )
     return entity_id, branch_id
 
