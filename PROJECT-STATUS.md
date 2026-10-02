@@ -1,127 +1,86 @@
 # NOMOS ERP — Project Status & Next Actions
 
-> This file is the operational handoff/source of truth for current execution state. Update it at the end of every meaningful work session and whenever a blocker/status materially changes.
+> Operational handoff/source of truth. Read after `AGENTS.md` before every work session.
 
 ## Current stage
-Phase 0 — Specification and Architecture
+Phase 1 — Engineering Foundation
 
-Overall status: PHASE 0 PASS — READY FOR PHASE 1
+Overall status: **PHASE 1 PASS — READY FOR PHASE 2**
 
-Primary objective: begin Phase 1 Engineering Foundation on host 73 only, preserving all Phase 0 contracts.
+Primary objective: begin Phase 2 SaaS Platform Core on host 73 only while preserving all Phase 0/1 contracts.
 
 ## Completed
 
-### Infrastructure / repository
-- [x] GitHub repository established.
-- [x] Host 72 designated control/orchestration only.
-- [x] Host 73 (`nomos-erp`) designated the only NOMOS development execution host.
-- [x] Host 73 authenticates to GitHub using its own SSH identity.
-- [x] Repository cloned on host 73 at `/root/nomos_erp`.
-- [x] Pre-work rule recorded in `AGENTS.md`.
+### Phase 0 — Specification and Architecture
+- [x] Phase 0 architecture review PASS — `docs/PHASE-0-REVIEW.md`.
+- [x] Domain, ERD, organization, authorization, inventory execution, API/audit, import/opening stock, operations, acceptance and Web Design contracts locked.
 
-### Phase 0 planning contracts
-- [x] Master phased delivery plan — `docs/MASTER-PLAN.md`
-- [x] Domain vocabulary/invariants — `docs/DOMAIN.md`
-- [x] Architectural data-model direction — `docs/DATA-MODEL.md`
-- [x] Document lifecycle — `docs/DOCUMENT-LIFECYCLE.md`
-- [x] Authorization model — `docs/AUTHORIZATION.md`
-- [x] Accounting/costing boundary — `docs/ACCOUNTING-BOUNDARY.md`
-- [x] Module boundaries — `docs/MODULES.md`
-- [x] Document numbering contract — `docs/NUMBERING.md`
-- [x] Stable API error-code baseline — `docs/ERROR-CODES.md`
-- [x] Operations baseline — `docs/OPERATIONS.md`
-- [x] Web Design Contract — `docs/WEB-DESIGN-CONTRACT.md`
-- [x] Phase 0 architecture review — `docs/PHASE-0-REVIEW.md`
-- [x] Roadmap aligned to Master Plan.
-- [x] Inventory/Documents/RBAC/Multi-tenancy implementation skills added.
+### Infrastructure / execution
+- [x] Host 72 is control/orchestration only; no NOMOS runtime, DB, dependency, build, test or migration workload runs there.
+- [x] Host 73 (`nomos-erp`) is the NOMOS development execution host at `/root/nomos_erp`.
+- [x] Verified 72 -> SSH -> 73 control path and recorded it in `docs/OPERATIONS.md`.
+- [x] Host 73 GitHub authentication and repository sync work using host 73 credentials.
+- [x] Verified Phase 1 runtime on host 73: Node.js 22.23.3, npm 10.9.9, Python 3.12.3, Docker 29.1.3, Docker Compose 2.40.3, Git 2.43.0.
+
+### Phase 1 — Engineering Foundation
+- [x] Web skeleton: Next.js + TypeScript under `apps/web`.
+- [x] API skeleton: FastAPI with core/application/domain/infrastructure boundaries under `apps/api`.
+- [x] Worker skeleton under `apps/worker`.
+- [x] PostgreSQL 17 development service through Docker Compose.
+- [x] Alembic migration baseline and empty-database upgrade.
+- [x] Configuration validation through Pydantic settings; no production secret committed.
+- [x] Request ID middleware and structured request log baseline.
+- [x] Liveness `/health` and dependency readiness `/ready`.
+- [x] CI gates for Python/Web lint, type checking, tests, migration, build, dependency audit and secret scan.
+- [x] Deterministic clean-boot instructions — `docs/ENGINEERING-FOUNDATION.md`.
+- [x] Web dependency audit reports zero known vulnerabilities after moving to Node 22 and patched Next.js 16.3.8.
+
+## Phase 1 acceptance evidence
+Executed on host 73:
+- API Ruff: PASS — `All checks passed!`
+- API mypy: PASS — `Success: no issues found in 6 source files`
+- API pytest: PASS — 2 tests passed
+- Empty PostgreSQL migration: PASS — fresh `nomos_phase1_gate` DB upgraded to `alembic_version` + `system_metadata`
+- Web ESLint: PASS
+- Web TypeScript: PASS
+- Web production build: PASS — Next.js 16.3.8 static route build completed
+- npm dependency audit: PASS — 0 vulnerabilities
+- API liveness with PostgreSQL running: `GET /health` -> 200 + `X-Request-ID`
+- API readiness with PostgreSQL running: `GET /ready` -> 200
+- API readiness with PostgreSQL stopped: `GET /ready` -> 503 `{"status":"not_ready"}`
+- PostgreSQL restored after the negative readiness test.
 
 ## Decisions passed / locked
-- [x] Web ERP is the primary product surface.
-- [x] LINE is Phase 13 and must reuse Web/application use cases.
-- [x] PostgreSQL is the authoritative business database.
-- [x] Initial architecture is a modular monolith.
-- [x] Shared DB/shared schema multi-tenancy with strict tenant scoping.
-- [x] Tenant, Legal Entity, Branch, Warehouse and Location are distinct concepts.
-- [x] Inventory ledger is authoritative; balance is a projection.
-- [x] Posted inventory history is immutable; correction uses reversal/compensation.
-- [x] PO does not change physical stock; Goods Receipt does.
-- [x] Sales Order does not reduce on-hand; Delivery/Issue does.
-- [x] Accounting/costing is separated from physical quantity semantics.
-- [x] Human document numbers are separate from immutable database IDs.
-- [x] Host 72 must not run NOMOS development workloads; development runs on host 73.
+- Security/tenant isolation remains highest priority.
+- Web ERP is primary; LINE remains Phase 13 and reuses application use cases.
+- PostgreSQL is authoritative; modular monolith remains the initial architecture.
+- Shared DB/shared schema multi-tenancy requires strict tenant scoping.
+- Inventory ledger is authoritative; posted inventory history is immutable.
+- Host 72 remains control-plane only; all NOMOS development/runtime execution remains on host 73.
+- Phase 1 supported Web runtime is Node.js 22.x; CI pins 22.23.3.
+- Health means process liveness; readiness includes PostgreSQL dependency availability.
 
 ## Current blockers
-- PHASE 1 OPERATIONAL BLOCKER: the available control-plane execution path from host 72 to host 73 is currently being blocked by the platform safety gate for SSH execution, including read-only `git status` on host 73. Per AGENTS.md, development must not be moved to host 72. Phase 1 scaffold is therefore paused until a permitted host-73 execution path is available.
-- No architecture blocker currently known.
-
-Operational note: nested SSH Git commands from the control host may sometimes be blocked by platform safety gates. This does not change the architecture rule; host 73 remains the development target. Do not work around this by moving workloads to host 72.
+- None for Phase 2.
+- Platform safety gates may occasionally require a permitted single-command SSH pattern; this is an execution-tool constraint, not a NOMOS architecture blocker.
 
 ## In progress / not yet passed
-Phase 0 is NOT complete. The following contracts still require completion and review:
-
-- [x] Detailed ERD: columns, keys, constraints and relationships for Phase 1–6 tables — `docs/ERD-PHASE-1-6.md`.
-- [x] Permission matrix: actor/role examples mapped to permissions and high-risk actions — `docs/AUTHORIZATION-MATRIX.md`.
-- [x] Inventory state machine and exact posting/reversal rules — `docs/INVENTORY-EXECUTION.md`.
-- [x] Inventory concurrency/locking/idempotency contract — `docs/INVENTORY-EXECUTION.md`.
-- [x] Organization model details — `docs/ORGANIZATION.md`.
-- [x] API conventions: versioning, pagination/filtering, request context, idempotency, errors — `docs/API-AUDIT-CONTRACT.md`.
-- [x] Audit event taxonomy — `docs/API-AUDIT-CONTRACT.md`.
-- [x] Import/opening-stock contract — `docs/IMPORT-OPENING-STOCK.md`.
-- [x] Phase 1–6 acceptance criteria/checklists — `docs/PHASE-1-6-ACCEPTANCE.md`.
-- [x] Phase 0 cross-document consistency review — PASS in `docs/PHASE-0-REVIEW.md`.
+- Phase 2 SaaS Platform Core has not started.
+- Two preserved pre-sync stashes remain on host 73 from conflicting local scaffold work; do not drop them until reviewed. They are not part of the Phase 1 PASS source tree.
 
 ## NEXT ACTIONS — execute in this order
 
-### NEXT 1 — Phase 1 environment verification on host 73
-Before scaffolding:
-1. sync `/root/nomos_erp` on host 73 to current main using host 73 credentials;
-2. verify working tree/branch and do not overwrite uncommitted work;
-3. inventory installed Node, package manager, Python, dependency manager, Docker/Compose and Git versions on host 73;
-4. record chosen supported runtime versions/tooling in engineering docs;
-5. confirm required ports/storage and that no NOMOS workload is placed on host 72.
+### NEXT 1 — Phase 2 tenant/organization persistence
+Implement tenant, legal entity, branch, user and tenant membership persistence using Phase 0 ERD constraints, including same-tenant composite FK strategy and migrations.
 
-Exit: host 73 is verified ready for deterministic scaffold or missing dependencies are explicitly identified for installation on 73.
+### NEXT 2 — Phase 2 auth/RBAC/session context
+Implement session/authentication foundation, server-derived tenant context, deny-by-default permissions and disabled membership/session behavior.
 
-### NEXT 2 — Scaffold Phase 1 on host 73
-Create Web/API/worker/module/infra/test structure, configuration, PostgreSQL development service, migration baseline, health/readiness and shared request context foundations.
-
-### NEXT 3 — Phase 1 CI and clean-boot gate
-Add lint/type/unit/integration/migration/build/secret/dependency checks, document clean boot, execute the Phase 1 acceptance gate and record evidence.
-
-## Session handoff procedure
-Before starting NOMOS work:
-1. Read `AGENTS.md`.
-2. Read this file.
-3. Read the relevant docs/skills for the current NEXT action.
-4. Continue the first incomplete NEXT action unless the user changes priority.
-
-Before ending meaningful work:
-1. Update Completed.
-2. Update Decisions passed/locked if a decision became authoritative.
-3. Update Current blockers.
-4. Update In progress/not yet passed.
-5. Rewrite NEXT ACTIONS so NEXT 1 is the actual next executable task.
-6. Record the latest meaningful result below.
+### NEXT 3 — Phase 2 audit/idempotency/outbox + isolation gate
+Implement audit, idempotency and outbox foundations; add cross-tenant guessed-ID/read/update/delete/reference tests and RBAC matrix tests. Phase 2 passes only when the automated tenant-isolation/RBAC gate is green.
 
 ## Latest activity
-- Phase 1 environment verification attempted from the approved host-72 control plane to host 73. Both batched and minimal read-only SSH execution were blocked by platform safety checks before execution.
-- No project/runtime command was executed on host 72 as a workaround; host isolation rule remains intact.
-- Phase 1 NEXT 1 is BLOCKED on obtaining a permitted host-73 execution path. Do not scaffold on host 72.
-- Phase 0 final architecture review PASS — `docs/PHASE-0-REVIEW.md`.
-- Closed Organization, Import/Opening Stock, Phase 1–6 Acceptance and Web Design contracts.
-- Review found warehouse branch/legal-entity DB-integrity ambiguity; resolved in ERD with composite organization FK.
-- All critical Phase 0 findings resolved; no architecture blocker remains.
-- Phase 0 status: PASS. Immediate next action: Phase 1 environment verification on host 73 only.
-- NEXT 1 Inventory execution/concurrency contract PASS — `docs/INVENTORY-EXECUTION.md`.
-- NEXT 2 Authorization matrix PASS — `docs/AUTHORIZATION-MATRIX.md`.
-- NEXT 3 API/Audit contract PASS — `docs/API-AUDIT-CONTRACT.md`.
-- Locked deterministic aggregate-before-lock inventory posting, exact idempotency behavior, reversal constraints, tenant-wide Phase 1–6 permission matrix, stable API/error/pagination conventions and audit taxonomy.
-- No new architecture blocker found.
-- Immediate next action: close remaining Phase 0 organization/import/acceptance/design contracts, then run final Phase 0 architecture review.
-- NEXT 1 Detailed ERD completed and PASS: `docs/ERD-PHASE-1-6.md`.
-- Locked database safeguards: composite same-tenant foreign keys, exact numeric/time conventions, append-oriented ledger/audit, balance projection key, idempotency/outbox persistence, concurrency-safe sequence persistence and traceable imports.
-- No new architecture blocker found.
-- Immediate next action: Inventory execution/concurrency contract.
-- Phase 0 architecture documentation set created and registered in `AGENTS.md`.
-- Current Phase 0 status remains IN PROGRESS.
-- Immediate next action: detailed Phase 1–6 ERD/schema contract.
+- Phase 1 acceptance gate completed on host 73 and marked PASS.
+- Node upgraded on host 73 to 22.23.3 to support the patched Next.js 16 line and eliminate dependency audit findings.
+- PostgreSQL empty-database migration, positive/negative readiness behavior, API quality gates, Web lint/type/build and dependency audit were verified.
+- Immediate next executable action: Phase 2 tenant/organization persistence on host 73.
