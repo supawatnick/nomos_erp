@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import Connection, text
 
 from app.application.catalog import create_product
-from app.application.inventory import InventoryError, StockLine, post_inventory
+from app.application.inventory import StockLine, post_inventory
 from app.domain.security import RequestContext, require_permission
 from app.infrastructure.platform import write_audit, write_outbox
 
