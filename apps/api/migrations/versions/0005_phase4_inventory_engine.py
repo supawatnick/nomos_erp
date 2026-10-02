@@ -80,7 +80,7 @@ def upgrade():
     op.execute(
         "INSERT INTO permissions (id,code,description,risk_level,created_at) VALUES "
         "(gen_random_uuid(),'inventory.read','Read inventory balances and movements','LOW',now()),"
-        "(gen_random_uuid(),'inventory.receive','Post inventory receipts and opening stock','MEDIUM',now()),"
+        "(gen_random_uuid(),'inventory.receive','Post inventory receipts','MEDIUM',now()),"
         "(gen_random_uuid(),'inventory.issue','Post inventory issues','MEDIUM',now()),"
         "(gen_random_uuid(),'inventory.transfer','Post inventory transfers','MEDIUM',now()),"
         "(gen_random_uuid(),'inventory.adjust','Post adjustments and reversals','HIGH',now()) "
