@@ -127,3 +127,21 @@ def test_reservation_rejects_over_available_and_cross_tenant_customer(engine):
         line=db.execute(text("SELECT id FROM sales_order_lines WHERE sales_order_id=:so"),{"so":so}).scalar_one()
         with pytest.raises(SalesError,match="insufficient available"):
             reserve_order(db,context=c1,order_id=so,location_id=l1,lines=[{"sales_order_line_id":line,"quantity":Decimal(1)}])
+
+
+def test_release_reservation_restores_available_and_records_timeline(engine):
+    tenant,entity,branch,unit,product,location,*_=seed(engine);context=sales_ctx(engine,tenant)
+    with engine.begin() as db:
+        customer=create_partner(db,context=context,code="REL-"+uuid4().hex[:8],name="Release Customer",is_customer=True,is_supplier=False)
+        _seed_sequence(db,tenant,"SO","SO-REL-",entity=entity,branch=branch)
+        qid=_qt(db,context,tenant,entity,branch,unit,product,customer,Decimal(3));send_quotation(db,context=context,quotation_id=qid)
+        so=accept_quotation(db,context=context,quotation_id=qid,accepted_by="Buyer");confirm_order(db,context=context,order_id=so)
+        post_inventory(db,context=context,transaction_type="RECEIVE",legal_entity_id=entity,branch_id=branch,
+            lines=[StockLine(product,unit,location,Decimal(3))],idempotency_key="release-seed")
+        line=db.execute(text("SELECT id FROM sales_order_lines WHERE sales_order_id=:so"),{"so":so}).scalar_one()
+        reserve_order(db,context=context,order_id=so,location_id=location,lines=[{"sales_order_line_id":line,"quantity":Decimal(2)}])
+        release_reservations(db,context=context,order_id=so)
+        assert Decimal(db.execute(text("SELECT reserved_quantity FROM sales_order_lines WHERE id=:id"),{"id":line}).scalar_one())==Decimal(0)
+        assert db.execute(text("SELECT status FROM sales_orders WHERE id=:id"),{"id":so}).scalar_one()=="CONFIRMED"
+        events=db.execute(text("SELECT event_type FROM sales_order_events WHERE sales_order_id=:so ORDER BY occurred_at,id"),{"so":so}).scalars().all()
+        assert "CONFIRMED" in events and "RESERVATION" in events and "RESERVATION_RELEASED" in events
