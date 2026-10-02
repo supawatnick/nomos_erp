@@ -56,7 +56,7 @@ def seed(engine):
 
 def ctx(tenant_id: UUID) -> RequestContext:
     return RequestContext(request_id=uuid4(),actor_user_id=uuid4(),tenant_id=tenant_id,tenant_user_id=uuid4(),
-                          permissions=frozenset({"inventory.read","inventory.receive","inventory.issue","inventory.transfer","inventory.adjust"}))
+                          permissions=frozenset({"inventory.read","inventory.receive","inventory.issue","inventory.transfer","inventory.adjust","warehouse.manage"}))
 
 
 def post(engine, context, entity, branch, kind, line, key):
