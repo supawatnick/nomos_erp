@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from app.application.auth import resolve_session
 from app.core.config import get_settings
 from app.domain.security import hash_session_token
+from app.infrastructure.platform import LegalEntityRepository, write_audit, write_outbox
 
 
 @pytest.fixture
@@ -44,6 +45,61 @@ def test_cross_tenant_branch_reference_rejected(postgres_connection) -> None:
                 text("INSERT INTO branches (id,tenant_id,legal_entity_id,code,name,status,created_at,updated_at) VALUES (:id,:tenant,:entity,'B','Branch','ACTIVE',:now,:now)"),
                 {"id": uuid4(), "tenant": tenant_b, "entity": entity_a, "now": now},
             )
+
+
+def test_cross_tenant_read_update_archive_are_hidden(postgres_connection) -> None:
+    now = datetime.now(UTC)
+    tenant_a, tenant_b, entity_id = uuid4(), uuid4(), uuid4()
+    for tenant_id in (tenant_a, tenant_b):
+        postgres_connection.execute(
+            text("INSERT INTO tenants (id,slug,name,status,default_locale,default_timezone,base_currency,created_at,updated_at) VALUES (:id,:slug,'T','ACTIVE','th-TH','Asia/Bangkok','THB',:now,:now)"),
+            {"id": tenant_id, "slug": "scope-" + tenant_id.hex, "now": now},
+        )
+    postgres_connection.execute(
+        text("INSERT INTO legal_entities (id,tenant_id,code,legal_name,country_code,base_currency,timezone,status,created_at,updated_at) VALUES (:id,:tenant,'LE','Original','TH','THB','Asia/Bangkok','ACTIVE',:now,:now)"),
+        {"id": entity_id, "tenant": tenant_a, "now": now},
+    )
+    repository = LegalEntityRepository()
+    assert repository.get(postgres_connection, tenant_b, entity_id) is None
+    assert not repository.rename(postgres_connection, tenant_b, entity_id, "Leaked")
+    assert not repository.archive(postgres_connection, tenant_b, entity_id)
+    assert repository.get(postgres_connection, tenant_a, entity_id)["legal_name"] == "Original"
+
+
+def test_admin_audit_and_outbox_are_persisted_atomically(postgres_connection) -> None:
+    now = datetime.now(UTC)
+    tenant_id, request_id, target_id = uuid4(), uuid4(), uuid4()
+    postgres_connection.execute(
+        text("INSERT INTO tenants (id,slug,name,status,default_locale,default_timezone,base_currency,created_at,updated_at) VALUES (:id,:slug,'T','ACTIVE','th-TH','Asia/Bangkok','THB',:now,:now)"),
+        {"id": tenant_id, "slug": "audit-" + tenant_id.hex, "now": now},
+    )
+    audit_id = write_audit(
+        postgres_connection,
+        tenant_id=tenant_id,
+        request_id=request_id,
+        action="organization.legal_entity.updated",
+        actor_user_id=None,
+        actor_tenant_user_id=None,
+        target_type="legal_entity",
+        target_id=target_id,
+        metadata={"changed_fields": ["legal_name"]},
+    )
+    event_id = write_outbox(
+        postgres_connection,
+        tenant_id=tenant_id,
+        aggregate_type="legal_entity",
+        aggregate_id=target_id,
+        event_type="organization.legal_entity.updated",
+        payload={"legal_entity_id": str(target_id)},
+    )
+    assert postgres_connection.execute(
+        text("SELECT count(*) FROM audit_logs WHERE id=:id AND request_id=:request_id"),
+        {"id": audit_id, "request_id": request_id},
+    ).scalar_one() == 1
+    assert postgres_connection.execute(
+        text("SELECT count(*) FROM outbox_events WHERE id=:id AND published_at IS NULL"),
+        {"id": event_id},
+    ).scalar_one() == 1
 
 
 def test_disabled_membership_cannot_resolve_session(postgres_connection) -> None:
