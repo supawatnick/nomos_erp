@@ -59,6 +59,18 @@ For Web-dependent phases, acceptance additionally requires:
 6. Execute deployed E2E smoke flows on Host 73 across the four ERP cores.
 7. Reconcile phase review documents only after evidence exists.
 
+## Clean-room remediation evidence — 2026-10-02
+- Host 73 PostgreSQL-backed API acceptance: **82 passed, 0 skipped** after loading the runtime environment.
+- Fixed PostgreSQL optional-filter typing in product/warehouse listing that produced runtime 500 errors.
+- FastAPI readiness returned `{"status":"ready"}` after remediation restart.
+- Reworked Demo login UX to prefill tenant/email, store session/tenant/permissions and redirect to workspace.
+- Reworked home workspace to verify `/api/v1/auth/context` before presenting operational modules.
+- Expanded Procurement Web visibility from PO-only to PR + RFQ + PO pipeline while preserving receipt/return workflow.
+- Expanded Finance Web from COA-only to accounts, periods, journals, invoices and payments workspaces.
+- Strengthened Sales workspace hierarchy and operational counts.
+- Web lint/typecheck/build: PASS after remediation; production Web service restarted.
+- **Remaining clean-room blocker:** NOMOS-owned automated browser/Web tests are still absent. Web-dependent phases remain UNVERIFIED until this is corrected and deployed E2E is automated.
+
 ## NEXT ACTIONS
 - **NEXT 1:** repair and acceptance-test authentication/login end-to-end.
 - **NEXT 2:** establish shared Web design system + shell and automated Web test harness.
