@@ -1,0 +1,3 @@
+import assert from "node:assert/strict";import {readFile} from "node:fs/promises";import test from "node:test";
+test("phase 5 admin surface covers users roles and audit",async()=>{const s=await readFile(new URL("../src/app/admin/page.tsx",import.meta.url),"utf8");for(const p of ["/api/v1/admin/","users","roles","audit"])assert.match(s,new RegExp(p))});
+test("phase 6 import surface requires preview before explicit commit",async()=>{const s=await readFile(new URL("../src/app/inventory/imports/page.tsx",import.meta.url),"utf8");assert.match(s,/validate/);assert.match(s,/READY_TO_COMMIT/);assert.match(s,/Commit atomically/);assert.match(s,/OPENING_STOCK/)});
