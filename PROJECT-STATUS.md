@@ -72,7 +72,8 @@ Primary objective: begin Phase 10 Approval & commercial controls from the clean 
 - [x] Loading/empty/login/permission/insufficient-stock/conflict/network/success states.
 - [x] Authenticated Authorization + X-Tenant-ID context.
 - [x] Web acceptance coverage for routes, headers, posting, error and retry behavior.
-- [x] Users/Roles/Audit administration API + Web remediation completed.\n- [x] Phase 5 review + remediation addendum — docs/PHASE-5-REVIEW.md.
+- [x] Users/Roles/Audit administration API + Web remediation completed.
+- [x] Phase 5 review + remediation addendum — docs/PHASE-5-REVIEW.md.
 
 ### Phase 6 — Inventory Operations / Internal ERP MVP
 - [x] Stock-count document and immutable system snapshot.
@@ -84,7 +85,9 @@ Primary objective: begin Phase 10 Approval & commercial controls from the clean 
 - [x] Low-stock/reorder actionable signals and suggested quantity.
 - [x] Procurement boundary preserved: no PR/RFQ/PO created by Inventory.
 - [x] Operational inventory summary and CSV export.
-- [x] Web operations/count/reorder/report surfaces.\n- [x] PRODUCT + OPENING_STOCK staged import/validate/preview/atomic commit remediation.\n- [x] Opening Stock permission corrected to inventory.adjust.
+- [x] Web operations/count/reorder/report surfaces.
+- [x] PRODUCT + OPENING_STOCK staged import/validate/preview/atomic commit remediation.
+- [x] Opening Stock permission corrected to inventory.adjust.
 - [x] PostgreSQL and Web acceptance coverage.
 - [x] Phase 6 review — docs/PHASE-6-REVIEW.md.
 - [x] Internal Inventory ERP MVP scope (Phases 0–6) complete after remediation closure.
@@ -153,8 +156,8 @@ Primary objective: begin Phase 10 Approval & commercial controls from the clean 
 - Reversal linkage and ledger-to-balance reconciliation: PASS.
 - Cross-tenant location rejection: PASS.
 - Audit/outbox and stock-bearing archive guard: PASS.
-- Final full CI/documentation gate: pending final documentation commit run at time of this status update; Phase 4 closure requires it to be green.
-- Host 73 clean-state verification: required after final sync.
+- Phase 4 closure was superseded and revalidated by the Phase 0–7 remediation acceptance and subsequent green CI gates.
+- Host 73 runtime baseline was reverified on 2026-10-02 during the Phase 0–8 repository audit.
 
 ## Phase 3 acceptance evidence
 - API Ruff: PASS.
@@ -198,7 +201,18 @@ Primary objective: begin Phase 10 Approval & commercial controls from the clean 
 - [x] Phase 0–3 alignment patch completed: data/ERD, document lifecycle, authorization namespaces, API/audit and numbering contracts now preserve the four-core design.
 - [x] Alignment review — docs/PHASE-0-3-ALIGNMENT.md.
 
-## Phase 0–7 remediation closure\n- [x] R-01 Users/Roles/Audit Web/API gap closed.\n- [x] R-02 PRODUCT/OPENING_STOCK import lifecycle gap closed.\n- [x] R-03 stale project/phase status reconciled.\n- [x] R-04 remediation Web surfaces checked against WEB-DESIGN-CONTRACT.\n- [x] Implementation acceptance CI 36986274423 PASS (47 PostgreSQL/API tests plus full Web/security/dependency gate).\n- [x] Documentation reconciliation CI 36986587027 PASS.\n- [x] Latest remediation permission-description migration CI 36986937445 PASS on c32a0e234cf31540e0c0275d25f93c90479b35ab.\n\n## Current blockers\n- No Phase 0–7 functional blocker remains for Phase 8.\n- Two preserved pre-sync stashes on host 73 remain an operational housekeeping item; do not drop them until reviewed.
+## Phase 0–7 remediation closure
+- [x] R-01 Users/Roles/Audit Web/API gap closed.
+- [x] R-02 PRODUCT/OPENING_STOCK import lifecycle gap closed.
+- [x] R-03 stale project/phase status reconciled.
+- [x] R-04 remediation Web surfaces checked against WEB-DESIGN-CONTRACT.
+- [x] Implementation acceptance CI 36986274423 PASS (47 PostgreSQL/API tests plus full Web/security/dependency gate).
+- [x] Documentation reconciliation CI 36986587027 PASS.
+- [x] Latest remediation permission-description migration CI 36986937445 PASS on c32a0e234cf31540e0c0275d25f93c90479b35ab.
+
+## Current blockers
+- No Phase 0–7 functional blocker remains for Phase 8.
+- Two preserved pre-sync stashes on host 73 remain an operational housekeeping item; do not drop them until reviewed.
 
 ## Phase 8 — Procurement & Purchasing
 - [x] Purchase Request lifecycle with dedicated commands and server-side numbering.
@@ -242,6 +256,15 @@ Implement approval policy/request/step/decision persistence with version/fingerp
 
 ### NEXT 3 — Commercial controls integration
 Apply approval controls to purchasing, sales discount/credit exceptions, inventory adjustments and later Finance-ready controls without bypassing module permissions.
+
+## Phase 0–8 repository re-audit — 2026-10-02
+- [x] Phase 0 architecture review PASS and Phase 0–7 remediation closure PASS.
+- [x] Phase 8 Procurement review PASS with CI 36996602994.
+- [x] Current main HEAD CI 37000290630 PASS with full-history Gitleaks scan.
+- [x] Host 73 main matches origin/main with 0/0 divergence and clean working tree; preserved stashes untouched.
+- [x] Host 73 PostgreSQL upgraded to Alembic 0012 head; full PostgreSQL suite 61 passed.
+- [x] Migration chain 0001 through 0012 present and current.
+- [x] Stale escaped-newline and Phase 4 pending-gate status text reconciled.
 
 ## Latest activity
 - Phase 9 Sales & CRM implementation complete.
