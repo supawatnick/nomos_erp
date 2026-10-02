@@ -1,13 +1,13 @@
 :80 {
     encode zstd gzip
     handle /api/* {
-        reverse_proxy 127.0.0.1:8000
+        reverse_proxy 127.0.0.1:8020
     }
     handle /health {
-        reverse_proxy 127.0.0.1:8000
+        reverse_proxy 127.0.0.1:8020
     }
     handle /ready {
-        reverse_proxy 127.0.0.1:8000
+        reverse_proxy 127.0.0.1:8020
     }
     handle {
         reverse_proxy 127.0.0.1:3000
