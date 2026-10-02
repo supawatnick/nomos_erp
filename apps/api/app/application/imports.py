@@ -125,8 +125,8 @@ def commit_batch(connection: Connection, *, context: RequestContext, batch_id: U
     if batch["status"]=="COMMITTED":
         if batch["committed_transaction_id"]:
             return [batch["committed_transaction_id"]]
-        prior: list[UUID]=connection.execute(text("SELECT target_id FROM import_rows WHERE tenant_id=:t AND batch_id=:b AND target_id IS NOT NULL ORDER BY row_number"),{"t":context.tenant_id,"b":batch_id}).scalars().all()
-        return list(prior)
+        prior_values=connection.execute(text("SELECT target_id FROM import_rows WHERE tenant_id=:t AND batch_id=:b AND target_id IS NOT NULL ORDER BY row_number"),{"t":context.tenant_id,"b":batch_id}).scalars().all()
+        return [UUID(str(value)) for value in prior_values]
     if batch["status"]!="READY_TO_COMMIT": raise ImportError("batch must validate without errors before commit")
     rows=connection.execute(text("SELECT id,normalized_data FROM import_rows WHERE tenant_id=:t AND batch_id=:b ORDER BY row_number"),
                             {"t":context.tenant_id,"b":batch_id}).mappings().all()
