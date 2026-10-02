@@ -107,6 +107,17 @@ def create_rfq(db: Connection, *, context: RequestContext, rfq_number: str, supp
         db.execute(text("""INSERT INTO procurement_rfq_suppliers
           (id,tenant_id,rfq_id,supplier_id,status) VALUES (:id,:t,:rfq,:supplier,'INVITED')"""),
           {"id": uuid4(), "t": context.tenant_id, "rfq": rfq_id, "supplier": supplier_id})
+    if purchase_request_id is not None:
+        pr_lines = db.execute(text("""SELECT id,line_number,product_id,unit_id,quantity
+            FROM purchase_request_lines WHERE tenant_id=:t AND purchase_request_id=:pr ORDER BY line_number"""),
+            {"t": context.tenant_id, "pr": purchase_request_id}).mappings().all()
+        for line in pr_lines:
+            db.execute(text("""INSERT INTO procurement_rfq_lines
+                (id,tenant_id,rfq_id,line_number,purchase_request_line_id,product_id,unit_id,quantity)
+                VALUES (:id,:t,:rfq,:line,:pr_line,:product,:unit,:quantity)"""),
+                {"id": uuid4(), "t": context.tenant_id, "rfq": rfq_id, "line": line["line_number"],
+                 "pr_line": line["id"], "product": line["product_id"], "unit": line["unit_id"],
+                 "quantity": line["quantity"]})
     _audit(db, context, "procurement.rfq.created", "procurement_rfq", rfq_id, {"rfq_number": rfq_number})
     return rfq_id
 
@@ -125,24 +136,61 @@ def send_rfq(db: Connection, *, context: RequestContext, rfq_id: UUID) -> None:
 
 
 def record_supplier_quote(db: Connection, *, context: RequestContext, rfq_id: UUID, supplier_id: UUID,
-                          quoted_total: Decimal, note: str | None = None) -> None:
+                          quoted_total: Decimal | None = None, note: str | None = None,
+                          lines: list[dict] | None = None) -> None:
     require_permission(context, "rfq.manage")
-    if quoted_total < 0:
-        raise ProcurementError("quoted total cannot be negative")
     rfq_status = db.execute(text("SELECT status FROM procurement_rfqs WHERE tenant_id=:t AND id=:id FOR UPDATE"),
                             {"t": context.tenant_id, "id": rfq_id}).scalar_one_or_none()
     if rfq_status not in {"SENT", "RESPONSES_RECEIVED"}:
         raise ProcurementError("RFQ is not accepting responses")
-    result = db.execute(text("""UPDATE procurement_rfq_suppliers
-        SET status='RESPONDED',quoted_total=:total,quoted_at=:now,note=:note
+    supplier_row = db.execute(text("""SELECT id FROM procurement_rfq_suppliers
         WHERE tenant_id=:t AND rfq_id=:rfq AND supplier_id=:supplier"""),
-        {"total": quoted_total, "now": datetime.now(UTC), "note": note, "t": context.tenant_id,
-         "rfq": rfq_id, "supplier": supplier_id})
-    if result.rowcount != 1:
+        {"t": context.tenant_id, "rfq": rfq_id, "supplier": supplier_id}).mappings().first()
+    if not supplier_row:
         raise ProcurementError("invited supplier not found")
+    if lines is not None:
+        if not lines:
+            raise ProcurementError("supplier quote requires lines")
+        db.execute(text("""DELETE FROM procurement_rfq_supplier_lines
+            WHERE tenant_id=:t AND rfq_supplier_id=:supplier"""),
+            {"t": context.tenant_id, "supplier": supplier_row["id"]})
+        total = Decimal(0)
+        seen: set[UUID] = set()
+        for offered in lines:
+            rfq_line_id = UUID(str(offered["rfq_line_id"]))
+            if rfq_line_id in seen:
+                raise ProcurementError("duplicate RFQ quote line")
+            seen.add(rfq_line_id)
+            rfq_line = db.execute(text("""SELECT quantity FROM procurement_rfq_lines
+                WHERE tenant_id=:t AND rfq_id=:rfq AND id=:line"""),
+                {"t": context.tenant_id, "rfq": rfq_id, "line": rfq_line_id}).mappings().first()
+            quantity = Decimal(offered["offered_quantity"])
+            price = Decimal(offered["unit_price"])
+            discount = Decimal(offered.get("discount_amount", 0))
+            tax = Decimal(offered.get("tax_amount", 0))
+            if not rfq_line or quantity <= 0 or quantity > Decimal(rfq_line["quantity"]) or price < 0 or discount < 0 or tax < 0:
+                raise ProcurementError("invalid supplier quote line")
+            gross = quantity * price
+            if discount > gross:
+                raise ProcurementError("quote discount exceeds gross amount")
+            line_total = gross - discount + tax
+            total += line_total
+            db.execute(text("""INSERT INTO procurement_rfq_supplier_lines
+                (id,tenant_id,rfq_supplier_id,rfq_line_id,offered_quantity,unit_price,discount_amount,tax_amount,line_total)
+                VALUES (:id,:t,:supplier,:line,:quantity,:price,:discount,:tax,:total)"""),
+                {"id": uuid4(), "t": context.tenant_id, "supplier": supplier_row["id"], "line": rfq_line_id,
+                 "quantity": quantity, "price": price, "discount": discount, "tax": tax, "total": line_total})
+        quoted_total = total
+    if quoted_total is None or quoted_total < 0:
+        raise ProcurementError("quoted total cannot be negative")
+    db.execute(text("""UPDATE procurement_rfq_suppliers
+        SET status='RESPONDED',quoted_total=:total,quoted_at=:now,note=:note
+        WHERE tenant_id=:t AND id=:id"""),
+        {"total": quoted_total, "now": datetime.now(UTC), "note": note, "t": context.tenant_id,
+         "id": supplier_row["id"]})
     if rfq_status == "SENT":
-        db.execute(text("UPDATE procurement_rfqs SET status='RESPONSES_RECEIVED',version=version+1,updated_at=:now WHERE tenant_id=:t AND id=:id"),
-                   {"now": datetime.now(UTC), "t": context.tenant_id, "id": rfq_id})
+        db.execute(text("""UPDATE procurement_rfqs SET status='RESPONSES_RECEIVED',version=version+1,updated_at=:now
+            WHERE tenant_id=:t AND id=:id"""), {"now": datetime.now(UTC), "t": context.tenant_id, "id": rfq_id})
 
 
 def award_rfq(db: Connection, *, context: RequestContext, rfq_id: UUID, supplier_id: UUID) -> None:
