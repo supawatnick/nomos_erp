@@ -1,34 +1,66 @@
-# Accounting and Costing Boundary
+# Finance & Accounting Core
 
-Accounting is not required for the first Inventory Web MVP, but the architecture must preserve a clean path to it.
+Finance & Accounting is one of NOMOS ERP's four first-class core modules. It is not an optional future add-on. Delivery is sequenced after operational modules so their source facts are stable, but architecture and schemas must preserve accounting integration from the start.
 
-## Separation
-Inventory owns physical quantity and movement history.
-Purchasing owns procurement documents and receipt intent.
-Sales owns order, reservation and delivery intent.
-Accounting owns journals, ledger accounts, receivables/payables, fiscal periods, invoices/payments and financial posting rules.
-Costing owns or collaborates on valuation policy without changing physical quantity semantics.
+## Ownership
+Finance owns:
+- chart of accounts and account configuration
+- journal entries/lines and General Ledger
+- Accounts Receivable and Accounts Payable
+- customer/supplier invoices and credit/debit notes
+- receipts, payments and allocations
+- fiscal periods and posting locks
+- tax/VAT posting configuration
+- accounting posting rules
+- financial dimensions required by policy
+- trial balance and financial statement foundations
+- reconciliation controls
 
-## Business effects
-Purchase Order: no physical or accounting stock posting by itself.
-Goods Receipt: physical inventory increase; may later create valuation/accrual effects through accounting policy.
-Purchase Return: physical decrease and corresponding financial effect when accounting is enabled.
-Sales Order: no physical decrease; may reserve availability.
-Delivery: physical decrease; may later recognize COGS/related entries according to accounting policy.
-Invoice/Payment: financial documents; must not directly rewrite physical stock.
-Inventory Adjustment: physical effect; accounting mapping is policy-driven.
+Inventory owns physical quantity/movement. Procurement owns supplier purchase intent. Sales owns customer commercial intent. Finance never rewrites physical stock or source commercial documents.
 
-## Integration contract
-Business modules emit durable, idempotent domain/outbox events or invoke explicit accounting posting contracts after the business transaction reaches the appropriate state. Accounting must not infer critical postings by scraping mutable UI data.
+## Core invariants
+- Posted journal entries are immutable.
+- Every posted journal balances debit == credit in document/base currency rules.
+- Financial amounts use exact decimals with explicit currency.
+- Posting into closed/locked periods is rejected.
+- Posting is tenant/legal-entity scoped.
+- Cross-tenant/legal-entity account/document references are rejected.
+- Source posting is idempotent: one eligible source effect cannot create duplicate journals.
+- Corrections use reversal, credit/debit note or explicit adjustment; no destructive history rewrite.
+- Journal entries retain source module/type/id/number, request correlation and actor/system provenance.
+- AR/AP subledgers reconcile to GL control accounts.
 
-## Money
-Store exact decimal amounts with currency context. Tenant base currency is configuration, not a global assumption. Future foreign-currency documents require document currency, exchange-rate provenance/date and base-currency derived amounts.
+## Operational integration
+Purchase Order: no financial posting by itself.
+Goods Receipt: physical increase; may create inventory/accrual valuation facts according to configured policy.
+Supplier Invoice: AP/tax/expense/inventory-clearing financial document.
+Payment: settles AP without changing physical stock.
 
-## Tax
-Tax codes/rates are effective-dated configuration. Do not hardcode a VAT percentage into business logic.
+Quotation/Sales Order: no GL posting by themselves.
+Delivery: physical decrease; may create inventory/COGS valuation facts.
+Customer Invoice: AR/revenue/tax financial document.
+Receipt: settles AR without changing physical stock.
 
-## Costing future
-Prepare for weighted-average, FIFO and standard cost without embedding one method into the physical inventory ledger. Costing records must be reproducible/auditable and corrections must preserve history.
+Inventory Adjustment: physical effect; Finance maps valuation impact through configured posting rules.
 
-## Fiscal controls
-Future accounting adds fiscal periods and posting locks. Module APIs should be able to reject postings into closed periods without redesigning document identity or audit history.
+## Posting contract
+Source modules emit durable, idempotent posting facts or invoke explicit Finance posting contracts only after the source reaches an eligible state. Contract includes tenant, legal entity, source type/id/number, effective/posting date, currency, exact amounts, tax context, business dimensions and idempotency identity. Finance validates period/account/policy and owns resulting journal IDs.
+
+## Money & currency
+Tenant base currency is configuration, not a global assumption. Foreign-currency documents preserve document currency, transaction amount, exchange-rate value/source/date and calculated base-currency amount. Rounding policy is explicit and tested.
+
+## Tax/VAT
+Tax codes/rates are effective-dated configuration. Do not hardcode VAT percentages. Tax calculation and tax posting are separate concerns with auditable bases/amounts.
+
+## Costing & valuation
+Physical inventory ledger remains quantity-authoritative. Costing/valuation may use weighted average, FIFO or standard cost according to configured policy without changing physical movement history. Valuation must be reproducible and corrections preserve history.
+
+## Reconciliation gates
+- journal debit == credit
+- AR customer balance == AR control reconciliation
+- AP supplier balance == AP control reconciliation
+- inventory valuation/subledger == configured GL inventory control reconciliation
+- source posting facts == Finance posting registry without duplicates/missing eligible items
+
+## Acceptance
+Finance phase is not PASS until balanced journal, closed-period, idempotency, reversal, tax/currency precision, AR/AP allocation and subledger-to-GL reconciliation tests pass.
