@@ -1,6 +1,6 @@
 # Phase 15 Review — Commercial Hardening
 
-Status: **PASS — PHASE 15 COMPLETE / CONTROLLED COMMERCIAL PILOT HARDENING GATE MET**
+Status: **CODE/HARDENING PASS — DEPLOYMENT/BROWSER ACCEPTANCE OPEN**
 
 ## Sequencing
 Phase 13 LINE remains **DEFERRED / NOT PASS** by product decision. Phase 15 does not claim Integrated Channel ERP V1 and does not depend on LINE.
@@ -61,6 +61,20 @@ Phase 15 implementation gate: GitHub Actions run `37017699870` — **SUCCESS**.
 - Historical three stashes preserved and untouched.
 
 ## Exit gate
-**PASS for controlled commercial pilot hardening.** Security, concurrency, restore, observability/alerts, migration/recovery, incident readiness and cross-core integrity checks are demonstrated at the current pilot dataset scale.
+**CODE/HARDENING PASS; DEPLOYMENT ACCEPTANCE OPEN.** Security, concurrency, restore, observability/alerts, migration/recovery, incident readiness and cross-core integrity checks are demonstrated at the current pilot dataset scale. A later runtime inspection found that no Next.js Web service was listening on host 73 and API processes were bound to localhost only; therefore browser-accessible commercial-pilot readiness was previously overstated.
 
 Commercial pilot scope excluding LINE can proceed. The repository must continue to state Phase 13 as DEFERRED / NOT PASS; Integrated Channel ERP V1 and full 0–15 sequential completion cannot be claimed until Phase 13 is completed.
+
+## Deployment acceptance correction — 2026-10-02
+Runtime inspection after the original closure found PostgreSQL/Redis running, API uvicorn listeners only on 127.0.0.1:8000 and 127.0.0.1:8010, and **no Next.js Web listener**. CI production-build success is not deployment evidence.
+
+The gate is reopened until all are proven:
+- production Web service running and restartable;
+- one canonical API service running and restartable;
+- browser entry URL reachable on the host network;
+- same-origin proxy routes Web API requests correctly;
+- /health and /ready succeed through the deployed entry point;
+- login and representative ERP pages are exercised against the deployed runtime;
+- runtime URL/configuration is recorded in HOST-73-RUNBOOK.md.
+
+Do not claim controlled commercial pilot readiness until this section is closed with runtime evidence.
