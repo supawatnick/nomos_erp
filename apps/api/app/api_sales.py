@@ -10,10 +10,12 @@ from app.api_master import trusted_context
 from app.application.sales import (
     SalesError,
     accept_quotation,
+    cancel_order,
     confirm_order,
     create_quotation,
     post_delivery,
     post_sales_return,
+    release_reservations,
     reserve_order,
     revise_quotation,
     send_quotation,
@@ -183,3 +185,31 @@ def delivery(order_id:UUID,payload:MovementIn,request:Request,idempotency_key:st
 @router.post("/orders/{order_id}/returns",status_code=201)
 def sales_return(order_id:UUID,payload:MovementIn,request:Request,idempotency_key:str=Header(alias="Idempotency-Key"),authorization:str|None=Header(default=None),x_tenant_id:str|None=Header(default=None,alias="X-Tenant-ID")):
     return _movement(order_id,payload,request,authorization,x_tenant_id,idempotency_key,"return")
+
+
+@router.get("/orders/{order_id}/timeline")
+def order_timeline(order_id:UUID,request:Request,authorization:str|None=Header(default=None),x_tenant_id:str|None=Header(default=None,alias="X-Tenant-ID")):
+    context=_ctx(request,authorization,x_tenant_id);require_permission(context,"sales.read")
+    with _engine().connect() as db:
+        rows=db.execute(text("""SELECT event_type,from_status,to_status,occurred_at,actor_tenant_user_id
+          FROM sales_order_events WHERE tenant_id=:t AND sales_order_id=:so ORDER BY occurred_at,id"""),
+          {"t":context.tenant_id,"so":order_id}).mappings().all()
+    return {"data":_serialize(rows),"meta":{"request_id":str(context.request_id)}}
+
+
+@router.post("/orders/{order_id}/release-reservations")
+def order_release(order_id:UUID,request:Request,authorization:str|None=Header(default=None),x_tenant_id:str|None=Header(default=None,alias="X-Tenant-ID")):
+    context=_ctx(request,authorization,x_tenant_id)
+    try:
+        with _engine().begin() as db:release_reservations(db,context=context,order_id=order_id)
+    except SalesError as exc:raise HTTPException(409,detail={"code":"INVALID_DOCUMENT_STATE","message":str(exc)}) from exc
+    return {"data":{"id":str(order_id),"released":True}}
+
+
+@router.post("/orders/{order_id}/cancel")
+def order_cancel(order_id:UUID,request:Request,authorization:str|None=Header(default=None),x_tenant_id:str|None=Header(default=None,alias="X-Tenant-ID")):
+    context=_ctx(request,authorization,x_tenant_id)
+    try:
+        with _engine().begin() as db:cancel_order(db,context=context,order_id=order_id)
+    except SalesError as exc:raise HTTPException(409,detail={"code":"INVALID_DOCUMENT_STATE","message":str(exc)}) from exc
+    return {"data":{"id":str(order_id),"status":"CANCELLED"}}
