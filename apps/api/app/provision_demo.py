@@ -53,6 +53,6 @@ def main() -> None:
         if product is None:
             product=uuid4(); db.execute(text("""INSERT INTO products(id,tenant_id,sku,name,product_type,base_unit_id,category_id,tracking_type,description,status,archived_at,created_at,updated_at)
             VALUES(:id,:t,'DEMO-E2E','Demo E2E Stock Item','STOCKABLE',:u,NULL,'NONE','Browser acceptance fixture','ACTIVE',NULL,:now,:now)"""),{"id":product,"t":TENANT_ID,"u":unit,"now":now})
-        n=db.execute(text("SELECT count(*) FROM role_permissions WHERE tenant_id=:t AND role_id=:r"),{"t":TENANT_ID,"r":role}).scalar_one()
+        n: int=db.execute(text("SELECT count(*) FROM role_permissions WHERE tenant_id=:t AND role_id=:r"),{"t":TENANT_ID,"r":role}).scalar_one()
     print(f"TENANT_ID={TENANT_ID} EMAIL={EMAIL} PERMISSIONS={n}")
 if __name__=="__main__": main()
