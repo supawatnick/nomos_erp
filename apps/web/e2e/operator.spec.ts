@@ -50,7 +50,7 @@ test("inventory receive commits through browser and explicit reversal restores l
  await expect(page.getByRole("heading",{name:"Receive Stock"})).toBeVisible();
  await page.getByLabel("Product").selectOption({index:1});
  await page.getByLabel("Source Location").selectOption({index:1});
- await page.getByLabel("Quantity").fill("1");
+ await page.getByLabel("Quantity").fill("1"); await expect(page.getByText("DEMO-WH",{exact:true})).toBeVisible();
  await page.getByLabel("Reference").fill(ref);
  await page.getByLabel("Reason").fill("Automated browser acceptance; reversed in same test");
  const submit=page.getByRole("button",{name:"Post RECEIVE"}); await expect(submit).toBeEnabled(); const req=page.waitForRequest(r=>r.url().includes("/api/v1/inventory/transactions")&&r.method()==="POST",{timeout:3000}); await submit.click(); await req;
