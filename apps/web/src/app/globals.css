@@ -3,3 +3,15 @@
 button:disabled{opacity:.55;cursor:not-allowed}.auth-page{min-height:calc(100vh - 128px);display:grid;grid-template-columns:minmax(0,1.1fr) minmax(360px,.65fr);gap:64px;align-items:center;max-width:1120px}.auth-intro h1{font-size:46px;max-width:620px}.auth-intro>p:not(.eyebrow){font-size:15px;max-width:560px}.form-title{display:flex;justify-content:space-between;align-items:end;border-bottom:1px solid var(--border);padding-bottom:14px}.form-title strong{font-size:16px}.form-title span,.demo-note{font-size:11px;color:var(--muted)}.demo-note{padding:10px 12px;background:#fafafa;border:1px solid var(--border);border-radius:6px}.success-text{color:#166534}.callout{display:flex;align-items:flex-start;flex-direction:column;max-width:620px}.callout strong{font-size:17px}.callout .button{margin-top:4px}.metric-id{font-size:18px!important;font-family:"JetBrains Mono","SFMono-Regular",Consolas,monospace}.card em{margin-top:auto;font-size:11px;color:#4f46e5;font-style:normal;font-weight:700}.section-block{margin-top:30px}.section-head.bare{padding:0 0 12px;border:0}.quick-links{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.quick-links a{display:flex;justify-content:space-between;padding:12px 14px;background:#fff;border:1px solid var(--border);border-radius:8px;text-decoration:none;font-size:12px}.quick-links a:hover{border-color:#c7d2fe;color:#4338ca}@media(max-width:900px){.auth-page{grid-template-columns:1fr;gap:24px;align-items:start}.auth-intro h1{font-size:36px}.quick-links{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){.quick-links{grid-template-columns:1fr}}
 
 .section-nav button.tab{background:#fff;color:#52525b;border-color:var(--border);font-size:12px;min-height:34px}.section-nav button.tab.active{background:#eef2ff;color:#4338ca;border-color:#c7d2fe}.metric strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.panel-head .hint{margin-left:auto}
+
+
+/* Sharp enterprise design system: square geometry, flat surfaces, explicit borders. */
+:root{--radius:2px;--radius-control:2px}
+.brand-mark,.nav-group a,.card,.button,.pager button,button,.section-nav a,.metric,.panel,.badge,.status,.state,.filterbar,.form-grid,.login-card,.filterbar input,.filterbar select,.login-card input,.login-card select,.form-grid input,.form-grid select,.inline-form input,.inline-form select,.import-textarea,.demo-note,.quick-links a{border-radius:var(--radius)!important}
+.avatar{border-radius:var(--radius)!important}
+.live-dot{border-radius:1px}
+.card:hover{box-shadow:none;border-color:#a1a1aa}
+.card,.metric,.panel,.state,.filterbar,.form-grid,.login-card,.quick-links a{box-shadow:none}
+.button,.pager button,button{box-shadow:none}
+.button:hover,.pager button:hover,button:hover{filter:brightness(.96)}
+.topbar,.sidebar,.table-wrap,th,.state.error,.state.success,.demo-note{box-shadow:none}
