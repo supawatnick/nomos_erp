@@ -186,9 +186,9 @@ def organization_list(
     require_permission(context, "warehouse.read")
     engine = create_engine(get_settings().database_url, pool_pre_ping=True)
     with engine.connect() as connection:
-        entities = connection.execute(text("SELECT id,code,legal_name,status FROM legal_entities WHERE tenant_id=:tenant ORDER BY code"), {"tenant": context.tenant_id}).mappings().all()
-        branches = connection.execute(text("SELECT id,legal_entity_id,code,name,status FROM branches WHERE tenant_id=:tenant ORDER BY code"), {"tenant": context.tenant_id}).mappings().all()
-    return {"data": {"legal_entities": serialize_rows(entities), "branches": serialize_rows(branches)}, "meta": {"request_id": str(context.request_id)}}
+        entities = [dict(row) for row in connection.execute(\n            text("SELECT id,code,legal_name,status FROM legal_entities WHERE tenant_id=:tenant ORDER BY code"),\n            {"tenant": context.tenant_id},\n        ).mappings().all()]
+        branches = [dict(row) for row in connection.execute(\n            text("SELECT id,legal_entity_id,code,name,status FROM branches WHERE tenant_id=:tenant ORDER BY code"),\n            {"tenant": context.tenant_id},\n        ).mappings().all()]
+    return {\n        "data": {"legal_entities": serialize_rows(entities), "branches": serialize_rows(branches)},\n        "meta": {"request_id": str(context.request_id)},\n    }
 
 
 @router.get("/warehouses")
