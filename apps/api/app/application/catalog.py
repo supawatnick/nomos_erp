@@ -94,6 +94,30 @@ def create_product(
     return product_id
 
 
+
+def update_product(
+    connection: Connection, *, context: RequestContext, product_id: UUID, sku: str, name: str,
+    product_type: str, base_unit_id: UUID, category_id: UUID | None = None,
+    tracking_type: str = "NONE", description: str | None = None
+) -> bool:
+    require_permission(context, "product.manage")
+    result = connection.execute(
+        text("""UPDATE products SET sku=:sku,name=:name,product_type=:product_type,
+                base_unit_id=:unit,category_id=:category,tracking_type=:tracking,
+                description=:description,updated_at=:now
+                WHERE tenant_id=:tenant AND id=:id AND status='ACTIVE'"""),
+        {"sku": sku, "name": name, "product_type": product_type, "unit": base_unit_id,
+         "category": category_id, "tracking": tracking_type, "description": description,
+         "now": datetime.now(UTC), "tenant": context.tenant_id, "id": product_id},
+    )
+    if result.rowcount:
+        write_audit(connection, tenant_id=context.tenant_id, request_id=context.request_id,
+                    action="catalog.product.updated", actor_user_id=context.actor_user_id,
+                    actor_tenant_user_id=context.tenant_user_id, target_type="product",
+                    target_id=product_id, metadata={"changed_fields": ["sku","name","product_type","base_unit_id","category_id","tracking_type","description"]})
+    return bool(result.rowcount)
+
+
 def archive_product(connection: Connection, *, context: RequestContext, product_id: UUID) -> bool:
     require_permission(context, "product.manage")
     changed = CatalogRepository().archive_product(connection, context.tenant_id, product_id)
