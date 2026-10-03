@@ -1,21 +1,17 @@
 "use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
+import {FormEvent,useCallback,useEffect,useState} from "react";
 type Warehouse={id:string;code:string;name:string;status:string;legal_entity_id:string;branch_id:string|null};
-
+type Entity={id:string;code:string;legal_name:string;status:string};type Branch={id:string;legal_entity_id:string;code:string;name:string;status:string};
+function auth(){const token=sessionStorage.getItem("nomos_session"),tenant=sessionStorage.getItem("nomos_tenant");return token&&tenant?{Authorization:`Bearer ${token}`,"X-Tenant-ID":tenant}:null}
 export default function WarehousesPage(){
- const [items,setItems]=useState<Warehouse[]>([]);
- const [error,setError]=useState("");
- useEffect(()=>{queueMicrotask(()=>{
-   const token=sessionStorage.getItem("nomos_session");
-   const tenant=sessionStorage.getItem("nomos_tenant");
-   if(!token||!tenant){setError("กรุณาเข้าสู่ระบบก่อนใช้งาน Master Data");return}
-   fetch(`${process.env.NEXT_PUBLIC_API_URL??""}/api/v1/warehouses?status=ACTIVE`,{headers:{Authorization:`Bearer ${token}`,"X-Tenant-ID":tenant}})
-     .then(async r=>{if(!r.ok)throw new Error();return r.json()})
-     .then(b=>setItems(b.data as Warehouse[]))
-     .catch(()=>setError("โหลดข้อมูลคลังไม่สำเร็จ"));
- })},[]);
- return <main className="erp-main"><div className="page-head"><div><p className="eyebrow">MASTER DATA</p><h1>Warehouses</h1><p>Legal-entity owned warehouses and branch assignments.</p></div><Link className="button" href="/">Overview</Link></div>{error&&<div className="state error">{error}</div>}<div className="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Legal entity</th><th>Branch</th><th>Status</th></tr></thead><tbody>{items.map(w=><tr key={w.id}><td className="mono">{w.code}</td><td>{w.name}</td><td className="mono">{w.legal_entity_id.slice(0,8)}</td><td className="mono">{w.branch_id?.slice(0,8)??"—"}</td><td><span className="badge">{w.status}</span></td></tr>)}</tbody></table></div></main>
+ const [items,setItems]=useState<Warehouse[]>([]),[entities,setEntities]=useState<Entity[]>([]),[branches,setBranches]=useState<Branch[]>([]);const [entity,setEntity]=useState(""),[branch,setBranch]=useState(""),[code,setCode]=useState(""),[name,setName]=useState(""),[error,setError]=useState(""),[busy,setBusy]=useState(false);
+ const load=useCallback(async()=>{const h=auth();if(!h){setError("กรุณาเข้าสู่ระบบก่อนใช้งาน Master Data");return}const [w,o]=await Promise.all([fetch(`${process.env.NEXT_PUBLIC_API_URL??""}/api/v1/warehouses`,{headers:h}),fetch(`${process.env.NEXT_PUBLIC_API_URL??""}/api/v1/organization`,{headers:h})]);if(!w.ok||!o.ok){setError("โหลดข้อมูลคลังไม่สำเร็จ");return}const wb=await w.json(),ob=await o.json();setItems(wb.data);setEntities(ob.data.legal_entities);setBranches(ob.data.branches);setEntity(x=>x||ob.data.legal_entities.find((e:Entity)=>e.status==="ACTIVE")?.id||"");setError("")},[]);
+ useEffect(()=>{queueMicrotask(()=>void load())},[load]);
+ async function create(e:FormEvent){e.preventDefault();const h=auth();if(!h||!entity)return;setBusy(true);const r=await fetch(`${process.env.NEXT_PUBLIC_API_URL??""}/api/v1/warehouses`,{method:"POST",headers:{...h,"Content-Type":"application/json"},body:JSON.stringify({legal_entity_id:entity,branch_id:branch||null,code:code.trim(),name:name.trim()})});setBusy(false);if(!r.ok){setError(r.status===409?"Warehouse data conflicts with an existing record.":"สร้าง Warehouse ไม่สำเร็จ");return}setCode("");setName("");await load()}
+ async function archive(id:string){const h=auth();if(!h||!confirm("Archive this warehouse?"))return;const r=await fetch(`${process.env.NEXT_PUBLIC_API_URL??""}/api/v1/warehouse/${id}/archive`,{method:"POST",headers:h});if(!r.ok){setError("Archive Warehouse ไม่สำเร็จ");return}await load()}
+ const validBranches=branches.filter(b=>b.legal_entity_id===entity&&b.status==="ACTIVE");
+ return <main className="erp-main"><div className="page-head"><div><p className="eyebrow">MASTER DATA</p><h1>Warehouses</h1><p>Legal-entity owned warehouses and branch assignments.</p></div><Link className="button" href="/">Overview</Link></div>
+ <form className="filterbar" onSubmit={create}><label>Legal entity<select required value={entity} onChange={e=>{setEntity(e.target.value);setBranch("")}}>{entities.filter(x=>x.status==="ACTIVE").map(x=><option key={x.id} value={x.id}>{x.code} · {x.legal_name}</option>)}</select></label><label>Branch<select value={branch} onChange={e=>setBranch(e.target.value)}><option value="">—</option>{validBranches.map(x=><option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</select></label><label>Code<input required maxLength={64} value={code} onChange={e=>setCode(e.target.value)}/></label><label>Name<input required maxLength={200} value={name} onChange={e=>setName(e.target.value)}/></label><button className="button" disabled={busy||!entity}>{busy?"Creating…":"Create Warehouse"}</button></form>
+ {error&&<div className="state error" role="alert">{error}</div>}<div className="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Legal entity</th><th>Branch</th><th>Status</th><th>Action</th></tr></thead><tbody>{items.map(w=><tr key={w.id}><td className="mono">{w.code}</td><td>{w.name}</td><td>{entities.find(e=>e.id===w.legal_entity_id)?.code??w.legal_entity_id.slice(0,8)}</td><td>{branches.find(b=>b.id===w.branch_id)?.code??"—"}</td><td><span className="badge">{w.status}</span></td><td>{w.status==="ACTIVE"?<button type="button" onClick={()=>void archive(w.id)}>Archive</button>:"—"}</td></tr>)}</tbody></table></div></main>
 }
