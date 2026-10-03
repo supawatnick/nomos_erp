@@ -13,6 +13,7 @@ def list_rows(
     connection: Connection, *, table: str, tenant_id: UUID, limit: int = 200
 ) -> list[dict[str, Any]]:
     queries = {
+        "units": "UPDATE units SET status='ARCHIVED',archived_at=:now,updated_at=:now WHERE tenant_id=:tenant AND id=:id AND status<>'ARCHIVED'",
         "categories": "SELECT id,code,name,status,parent_id FROM categories WHERE tenant_id=:tenant ORDER BY code,id LIMIT :limit",
         "units": "SELECT id,code,name,symbol,precision,status FROM units WHERE tenant_id=:tenant ORDER BY code,id LIMIT :limit",
         "locations": "SELECT id,warehouse_id,parent_id,code,name,location_type,allow_stock,status FROM warehouse_locations WHERE tenant_id=:tenant ORDER BY code,id LIMIT :limit",
@@ -131,6 +132,7 @@ def archive_master(
 ) -> bool:
     config = {
         "category": ("categories", "product.manage", "catalog.category.archived"),
+        "unit": ("units", "product.manage", "catalog.unit.archived"),
         "warehouse": ("warehouses", "warehouse.manage", "warehouse.warehouse.archived"),
         "location": ("warehouse_locations", "warehouse.manage", "warehouse.location.archived"),
     }
