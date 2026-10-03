@@ -176,6 +176,21 @@ def product_archive(
     return {"data": {"id": str(product_id), "status": "ARCHIVED"}, "meta": {"request_id": str(context.request_id)}}
 
 
+@router.get("/organization")
+def organization_list(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> dict[str, object]:
+    context = trusted_context(request, authorization, x_tenant_id)
+    require_permission(context, "warehouse.read")
+    engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+    with engine.connect() as connection:
+        entities = connection.execute(text("SELECT id,code,legal_name,status FROM legal_entities WHERE tenant_id=:tenant ORDER BY code"), {"tenant": context.tenant_id}).mappings().all()
+        branches = connection.execute(text("SELECT id,legal_entity_id,code,name,status FROM branches WHERE tenant_id=:tenant ORDER BY code"), {"tenant": context.tenant_id}).mappings().all()
+    return {"data": {"legal_entities": serialize_rows(entities), "branches": serialize_rows(branches)}, "meta": {"request_id": str(context.request_id)}}
+
+
 @router.get("/warehouses")
 def warehouses(
     request: Request,
