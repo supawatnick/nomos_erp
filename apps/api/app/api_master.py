@@ -19,6 +19,7 @@ from app.application.master_data import (
     create_unit,
     create_warehouse,
     list_rows,
+    update_master,
 )
 from app.application.warehouse import WarehouseRepository
 from app.core.config import get_settings
@@ -55,6 +56,22 @@ class LocationCreate(BaseModel):
     location_type: str = "STORAGE"
     allow_stock: bool = True
 
+
+
+class CategoryUpdate(CategoryCreate):
+    pass
+
+
+class UnitUpdate(UnitCreate):
+    pass
+
+
+class WarehouseUpdate(WarehouseCreate):
+    pass
+
+
+class LocationUpdate(LocationCreate):
+    pass
 
 class ProductUnitCreate(BaseModel):
     unit_id: UUID
@@ -361,13 +378,46 @@ def locations_create(
     return {"data": {"id": str(resource_id)}, "meta": {"request_id": str(context.request_id)}}
 
 
+
+@router.put("/{resource}/{resource_id}")
+def master_update(
+    resource: str, resource_id: UUID,
+    payload: CategoryUpdate | UnitUpdate | WarehouseUpdate | LocationUpdate,
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> dict[str, object]:
+    model_by_resource = {
+        "category": CategoryUpdate,
+        "unit": UnitUpdate,
+        "warehouse": WarehouseUpdate,
+        "location": LocationUpdate,
+    }
+    expected = model_by_resource.get(resource)
+    if expected is None or not isinstance(payload, expected):
+        raise HTTPException(status_code=422, detail={"code": "VALIDATION_FAILED"})
+    context = trusted_context(request, authorization, x_tenant_id)
+    engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+    try:
+        with engine.begin() as connection:
+            changed = update_master(
+                connection, context=context, resource=resource, resource_id=resource_id,
+                values=payload.model_dump(),
+            )
+    except (IntegrityError, ValueError) as exc:
+        raise HTTPException(status_code=409, detail={"code": "VALIDATION_FAILED"}) from exc
+    if not changed:
+        raise HTTPException(status_code=404, detail={"code": "RESOURCE_NOT_FOUND"})
+    return {"data": {"id": str(resource_id)}, "meta": {"request_id": str(context.request_id)}}
+
+
 @router.post("/{resource}/{resource_id}/archive")
 def master_archive(
     resource: str, resource_id: UUID, request: Request,
     authorization: str | None = Header(default=None),
     x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
 ) -> dict[str, object]:
-    if resource not in {"category", "warehouse", "location"}:
+    if resource not in {"category", "unit", "warehouse", "location"}:
         raise HTTPException(status_code=404, detail={"code": "RESOURCE_NOT_FOUND"})
     context = trusted_context(request, authorization, x_tenant_id)
     engine = create_engine(get_settings().database_url, pool_pre_ping=True)
