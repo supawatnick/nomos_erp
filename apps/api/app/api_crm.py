@@ -11,14 +11,14 @@ from app.api_master import trusted_context
 from app.application.crm import (
     CRMError,
     add_activity,
-    archive_partner,
     add_address,
     add_contact,
+    archive_partner,
     create_lead,
     create_opportunity,
     create_partner,
-    update_partner,
     transition_lead,
+    update_partner,
 )
 from app.core.config import get_settings
 from app.domain.security import require_permission
