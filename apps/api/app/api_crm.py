@@ -11,11 +11,13 @@ from app.api_master import trusted_context
 from app.application.crm import (
     CRMError,
     add_activity,
+    archive_partner,
     add_address,
     add_contact,
     create_lead,
     create_opportunity,
     create_partner,
+    update_partner,
     transition_lead,
 )
 from app.core.config import get_settings
@@ -66,6 +68,26 @@ def partner_create(payload:PartnerIn,request:Request,authorization:str|None=Head
     except IntegrityError as exc: raise HTTPException(409,detail={"code":"DUPLICATE_RESOURCE"}) from exc
     except CRMError as exc: raise HTTPException(409,detail={"code":"VALIDATION_FAILED","message":str(exc)}) from exc
     return {"data":{"id":str(pid)},"meta":{"request_id":str(c.request_id)}}
+
+
+@router.put("/partners/{partner_id}")
+def partner_update(partner_id:UUID,payload:PartnerIn,request:Request,authorization:str|None=Header(default=None),x_tenant_id:str|None=Header(default=None,alias="X-Tenant-ID")):
+    c=_ctx(request,authorization,x_tenant_id)
+    try:
+        with _engine().begin() as db: changed=update_partner(db,context=c,partner_id=partner_id,**payload.model_dump())
+    except IntegrityError as exc: raise HTTPException(409,detail={"code":"DUPLICATE_RESOURCE"}) from exc
+    except CRMError as exc: raise HTTPException(409,detail={"code":"VALIDATION_FAILED","message":str(exc)}) from exc
+    if not changed: raise HTTPException(404,detail={"code":"RESOURCE_NOT_FOUND"})
+    return {"data":{"id":str(partner_id)}}
+
+
+@router.post("/partners/{partner_id}/archive")
+def partner_archive(partner_id:UUID,request:Request,authorization:str|None=Header(default=None),x_tenant_id:str|None=Header(default=None,alias="X-Tenant-ID")):
+    c=_ctx(request,authorization,x_tenant_id)
+    with _engine().begin() as db: changed=archive_partner(db,context=c,partner_id=partner_id)
+    if not changed: raise HTTPException(404,detail={"code":"RESOURCE_NOT_FOUND"})
+    return {"data":{"id":str(partner_id),"status":"ARCHIVED"}}
+
 
 @router.get("/partners/{partner_id}")
 def partner_detail(partner_id:UUID,request:Request,authorization:str|None=Header(default=None),x_tenant_id:str|None=Header(default=None,alias="X-Tenant-ID")):
