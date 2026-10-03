@@ -9,7 +9,12 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError
 
 from app.application.auth import resolve_session
-from app.application.catalog import CatalogRepository, archive_product, create_product, update_product
+from app.application.catalog import (
+    CatalogRepository,
+    archive_product,
+    create_product,
+    update_product,
+)
 from app.application.master_data import (
     add_product_barcode,
     add_product_unit,
