@@ -9,7 +9,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError
 
 from app.application.auth import resolve_session
-from app.application.catalog import CatalogRepository, archive_product, create_product
+from app.application.catalog import CatalogRepository, archive_product, create_product, update_product
 from app.application.master_data import (
     add_product_barcode,
     add_product_unit,
@@ -174,6 +174,25 @@ def product_create(
             )
     except IntegrityError as exc:
         raise HTTPException(status_code=409, detail={"code": "DUPLICATE_RESOURCE"}) from exc
+    return {"data": {"id": str(product_id)}, "meta": {"request_id": str(context.request_id)}}
+
+
+
+@router.put("/products/{product_id}")
+def product_update(
+    product_id: UUID, payload: ProductCreate, request: Request,
+    authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
+) -> dict[str, object]:
+    context = trusted_context(request, authorization, x_tenant_id)
+    engine = create_engine(get_settings().database_url, pool_pre_ping=True)
+    try:
+        with engine.begin() as connection:
+            changed = update_product(connection, context=context, product_id=product_id, **payload.model_dump())
+    except IntegrityError as exc:
+        raise HTTPException(status_code=409, detail={"code": "DUPLICATE_RESOURCE"}) from exc
+    if not changed:
+        raise HTTPException(status_code=404, detail={"code": "RESOURCE_NOT_FOUND"})
     return {"data": {"id": str(product_id)}, "meta": {"request_id": str(context.request_id)}}
 
 
