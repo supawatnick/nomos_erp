@@ -112,3 +112,12 @@ For Web-dependent phases, acceptance additionally requires:
 
 ## Handoff
 Do not use historical PASS language as authorization to advance. The clean-room table above is the operational source of truth until superseded by new evidence.
+
+
+## Login/API regression incident — 2026-10-03
+- Production symptom: `/login` rendered HTTP 200 but authentication failed because public `/health` returned 502.
+- Root cause: `apps/api/app/api_master.py` contained literal escaped `\\n` sequences introduced by the organization lookup patch. Python raised `SyntaxError` while importing `app.main`, causing `nomos-api.service` to restart-loop.
+- Fix: commit `db78acea36e1ed91b3eb2cbb2dfbe782f20e3e51` removed the escaped newline corruption. On Host 73, `python -m py_compile apps/api/app/api_master.py` passes and the API was restarted.
+- Production verification: public `/health` returns HTTP 200 with `{"status":"ok"}`; `/login` returns HTTP 200; deployed runtime acceptance passes 3/3 including demo login, tenant session creation, and authenticated context resolution.
+- Prevention: commit `c47edeaa4f3e28f4089af57c59d785bdf4a2d17b` adds an explicit CI import/startup gate (`from app.main import app`) before migration/tests so import-time syntax failures are caught before deployment.
+- CI note: the regression fix itself proceeds past Python checks; current CI is independently blocked by `npm audit --audit-level=high` on upstream `braces 3.0.3` (GHSA-vfj7-8cjw-p6xm). The registry currently reports 3.0.3 as latest and `npm audit fix --force` proposes a breaking eslint-config-next downgrade, so the security gate is not being bypassed or force-downgraded.
