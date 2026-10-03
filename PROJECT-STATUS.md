@@ -121,3 +121,12 @@ Do not use historical PASS language as authorization to advance. The clean-room 
 - Production verification: public `/health` returns HTTP 200 with `{"status":"ok"}`; `/login` returns HTTP 200; deployed runtime acceptance passes 3/3 including demo login, tenant session creation, and authenticated context resolution.
 - Prevention: commit `c47edeaa4f3e28f4089af57c59d785bdf4a2d17b` adds an explicit CI import/startup gate (`from app.main import app`) before migration/tests so import-time syntax failures are caught before deployment.
 - CI note: the regression fix itself proceeds past Python checks; current CI is independently blocked by `npm audit --audit-level=high` on upstream `braces 3.0.3` (GHSA-vfj7-8cjw-p6xm). The registry currently reports 3.0.3 as latest and `npm audit fix --force` proposes a breaking eslint-config-next downgrade, so the security gate is not being bypassed or force-downgraded.
+
+
+## CRUD lifecycle completion — 2026-10-03
+- Master-data lifecycle policy is now explicit: mutable master records use Create + Edit + Archive rather than destructive hard-delete, preserving foreign keys and audit history. Posted transactional documents continue to use Cancel/Void/Reverse according to their domain lifecycle.
+- Backend update/archive coverage added for Category, Unit, Warehouse, Location, Product, and Business Partner. Update operations remain tenant-scoped, permission-gated, and audit-recorded.
+- Web actions now expose Edit/Cancel/Archive for Category, Unit, Warehouse, Location, Product, and Business Partner; CRM also exposes lead creation/transitions, opportunity creation, and targeted activity creation.
+- A Unit archive patch initially inserted an archive SQL entry into the read-query map; Ruff caught the duplicate-key defect before deployment. Commit 2baa870e7afb5b2baaa8f5eb5db26223de07bbd3 corrected query placement. This is recorded as another reason to require lint/import gates before deployment.
+- Host 73 verification after the CRUD changes: Python compilation passed, API pytest passed 18/18 (64 environment-dependent tests skipped), Web typecheck passed, Web contract tests passed 3/3, Next production build generated 31/31 pages, and deployed runtime acceptance passed 3/3 after API/Web restart with a readiness delay.
+- CI still has the independent npm audit advisory blocker documented above; Ruff import-order findings introduced by the CRUD endpoints were corrected in follow-up style commits.
