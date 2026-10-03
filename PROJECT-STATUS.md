@@ -130,3 +130,13 @@ Do not use historical PASS language as authorization to advance. The clean-room 
 - A Unit archive patch initially inserted an archive SQL entry into the read-query map; Ruff caught the duplicate-key defect before deployment. Commit 2baa870e7afb5b2baaa8f5eb5db26223de07bbd3 corrected query placement. This is recorded as another reason to require lint/import gates before deployment.
 - Host 73 verification after the CRUD changes: Python compilation passed, API pytest passed 18/18 (64 environment-dependent tests skipped), Web typecheck passed, Web contract tests passed 3/3, Next production build generated 31/31 pages, and deployed runtime acceptance passed 3/3 after API/Web restart with a readiness delay.
 - CI still has the independent npm audit advisory blocker documented above; Ruff import-order findings introduced by the CRUD endpoints were corrected in follow-up style commits.
+
+
+## Web operational completion pass — 2026-10-03
+- Web audit expanded beyond route rendering: core pages were compared against existing backend commands and read-only gaps were converted into operational actions where the domain permits mutation.
+- Finance Web now creates chart-of-account records and fiscal periods and can open/close periods. Immutable posted accounting records remain non-editable by design; journal reversal/payment/invoice APIs remain the accounting lifecycle rather than destructive edit/delete.
+- Procurement Web now creates Purchase Requests and exposes PR submit/approve/reject/cancel actions. Product, unit, and warehouse-location inputs use master-data selectors rather than requiring copied UUIDs.
+- Sales Web now creates quotations, sends and accepts quotations into Sales Orders, confirms/cancels orders, and retains reservation/delivery/return fulfillment. Legal entity, customer, product, unit, and location use business selectors.
+- Existing operational areas remain active: Inventory posting/reversal workflows, Approval decisions/cancellation, controlled Imports validation/commit, Reports/export, CRM lead/opportunity/activity workflows, and Master Data Create/Edit/Archive.
+- Admin Audit and Subscription are intentionally read-only evidence/entitlement views; immutable audit evidence must not expose edit/delete, and subscription mutation is not fabricated without a commercial provisioning command.
+- Verification on Host 73 after this pass: Web typecheck passed, Next production build generated 31/31 pages, Web service restarted, and deployed runtime acceptance passed 3/3 (critical routes, health/readiness, demo login/session/context/authenticated reads).
