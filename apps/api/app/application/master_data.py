@@ -95,6 +95,37 @@ def create_location(
     return location_id
 
 
+def update_master(
+    connection: Connection, *, context: RequestContext, resource: str, resource_id: UUID,
+    values: dict[str, object]
+) -> bool:
+    config = {
+        "category": ("categories", "product.manage", {"code", "name", "parent_id"}, "catalog.category.updated"),
+        "unit": ("units", "product.manage", {"code", "name", "symbol", "precision"}, "catalog.unit.updated"),
+        "warehouse": ("warehouses", "warehouse.manage", {"legal_entity_id", "branch_id", "code", "name"}, "warehouse.warehouse.updated"),
+        "location": ("warehouse_locations", "warehouse.manage", {"warehouse_id", "parent_id", "code", "name", "location_type", "allow_stock"}, "warehouse.location.updated"),
+    }
+    if resource not in config:
+        raise ValueError("unsupported master resource")
+    table, permission, allowed, action = config[resource]
+    require_permission(context, permission)
+    changed = {key: value for key, value in values.items() if key in allowed}
+    if not changed:
+        return False
+    assignments = ",".join(f"{key}=:{key}" for key in changed)
+    params = {**changed, "now": datetime.now(UTC), "tenant": context.tenant_id, "id": resource_id}
+    result = connection.execute(
+        text(f"UPDATE {table} SET {assignments},updated_at=:now WHERE tenant_id=:tenant AND id=:id AND status='ACTIVE'"),
+        params,
+    )
+    if result.rowcount:
+        write_audit(connection, tenant_id=context.tenant_id, request_id=context.request_id,
+                    action=action, actor_user_id=context.actor_user_id,
+                    actor_tenant_user_id=context.tenant_user_id, target_type=resource,
+                    target_id=resource_id, metadata={"changed_fields": sorted(changed)})
+    return bool(result.rowcount)
+
+
 def archive_master(
     connection: Connection, *, context: RequestContext, resource: str, resource_id: UUID
 ) -> bool:
