@@ -32,6 +32,29 @@ def create_partner(db:Connection,*,context:RequestContext,code:str,name:str,is_c
     return pid
 
 
+
+def update_partner(db:Connection,*,context:RequestContext,partner_id:UUID,code:str,name:str,is_customer:bool,is_supplier:bool,
+                   legal_name:str|None=None,tax_id:str|None=None,owner_tenant_user_id:UUID|None=None)->bool:
+    require_permission(context,"partner.manage")
+    if not is_customer and not is_supplier: raise CRMError("partner must be customer, supplier or both")
+    result=db.execute(text("""UPDATE business_partners SET code=:code,name=:name,legal_name=:legal,tax_id=:tax,
+      is_customer=:customer,is_supplier=:supplier,owner_tenant_user_id=:owner,updated_at=:now
+      WHERE tenant_id=:tenant AND id=:id AND status='ACTIVE'"""),
+      {"code":code,"name":name,"legal":legal_name,"tax":tax_id,"customer":is_customer,"supplier":is_supplier,
+       "owner":owner_tenant_user_id,"now":datetime.now(UTC),"tenant":context.tenant_id,"id":partner_id})
+    if result.rowcount: _audit(db,context,"crm.partner.updated","business_partner",partner_id)
+    return bool(result.rowcount)
+
+
+def archive_partner(db:Connection,*,context:RequestContext,partner_id:UUID)->bool:
+    require_permission(context,"partner.manage")
+    result=db.execute(text("""UPDATE business_partners SET status='ARCHIVED',updated_at=:now
+      WHERE tenant_id=:tenant AND id=:id AND status='ACTIVE'"""),
+      {"now":datetime.now(UTC),"tenant":context.tenant_id,"id":partner_id})
+    if result.rowcount: _audit(db,context,"crm.partner.archived","business_partner",partner_id)
+    return bool(result.rowcount)
+
+
 def add_contact(db:Connection,*,context:RequestContext,partner_id:UUID,name:str,email:str|None=None,
                 phone:str|None=None,position:str|None=None,is_primary:bool=False)->UUID:
     require_permission(context,"partner.manage");cid=uuid4()
