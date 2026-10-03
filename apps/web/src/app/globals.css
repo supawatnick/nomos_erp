@@ -40,3 +40,18 @@ tbody tr:hover{background:#fafafa}
 .eyebrow{color:#475569}.card em,.panel-head a,.section-head a{color:#475569}
 .section-nav button.tab.active{background:#e2e8f0;color:#1e293b;border-color:#94a3b8}
 @media(max-width:760px){.content{padding:18px 12px}.topbar{padding:0 14px}}
+
+
+/* Monochrome-only palette: white, black and neutral grays. */
+:root{--accent:#27272a;--border:#d4d4d8;--muted:#71717a;--surface:#fff;--sidebar:#18181b}
+.brand-mark{background:#3f3f46;color:#fff}
+.live-dot{background:#a1a1aa}
+.avatar{background:#e4e4e7;color:#18181b!important}
+.eyebrow,.card em,.panel-head a,.section-head a{color:#52525b}
+.card.featured{border-color:#a1a1aa}
+.button,.pager button,button{background:#27272a;border-color:#27272a;color:#fff}
+.button.secondary{background:#fff;color:#27272a;border-color:#a1a1aa}
+.quick-links a:hover{border-color:#71717a;color:#18181b}
+.section-nav button.tab.active{background:#e4e4e7;color:#18181b;border-color:#a1a1aa}
+.state.error,.error{border-color:#a1a1aa;color:#18181b;background:#f4f4f5}
+.state.success,.success-text{border-color:#a1a1aa;color:#27272a;background:#fafafa}
