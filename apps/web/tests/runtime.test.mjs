@@ -26,7 +26,7 @@ test("demo login creates a tenant session and resolves context",async()=>{
  const headers={Authorization:`Bearer ${payload.data.session_token}`,"X-Tenant-ID":tenant};
  const context=await fetch(apiOrigin+"/api/v1/auth/context",{headers});assert.equal(context.status,200,"session context must resolve");
  const ctx=await context.json();assert.equal(ctx.data.tenant_id,tenant);assert.ok(ctx.data.permissions.length>0);
- for(const path of ["/api/v1/master-data/summary","/api/v1/inventory/balances","/api/v1/procurement/requests","/api/v1/procurement/rfqs","/api/v1/procurement/orders","/api/v1/sales/quotations","/api/v1/sales/orders","/api/v1/finance/accounts","/api/v1/finance/periods","/api/v1/finance/journals","/api/v1/finance/invoices","/api/v1/finance/payments","/api/v1/approvals","/api/v1/reports"]){
+ for(const path of ["/api/v1/master-data/summary","/api/v1/organization","/api/v1/inventory/balances","/api/v1/procurement/requests","/api/v1/procurement/rfqs","/api/v1/procurement/orders","/api/v1/sales/quotations","/api/v1/sales/orders","/api/v1/finance/accounts","/api/v1/finance/periods","/api/v1/finance/journals","/api/v1/finance/invoices","/api/v1/finance/payments","/api/v1/approvals","/api/v1/reports"]){
   const r=await fetch(apiOrigin+path,{headers});assert.equal(r.status,200,`${path} must be readable by demo admin`);
  }
 });
