@@ -2,8 +2,8 @@
 import {FormEvent,useEffect,useState} from "react";
 import {useRouter} from "next/navigation";
 
-const DEMO_TENANT="11111111-1111-4111-8111-111111111111";
-const DEMO_EMAIL="admin@demo.nomos.local";
+const DEMO_TENANT="00000000-0000-4000-8000-000000000001";
+const DEMO_EMAIL="admin@example.invalid";
 
 export default function LoginPage(){
  const router=useRouter();
