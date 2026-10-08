@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 
 const origin=process.env.NOMOS_ORIGIN??"http://127.0.0.1:3000";
 const apiOrigin=process.env.NOMOS_API_ORIGIN??origin;
-const tenant=process.env.NOMOS_DEMO_TENANT??"11111111-1111-4111-8111-111111111111";
-const email=process.env.NOMOS_DEMO_EMAIL??"admin@demo.nomos.local";
+const tenant=process.env.NOMOS_DEMO_TENANT??"00000000-0000-4000-8000-000000000001";
+const email=process.env.NOMOS_DEMO_EMAIL??"admin@example.invalid";
 
 async function html(path){
  const r=await fetch(origin+path);assert.equal(r.status,200,`${path} must return 200`);
