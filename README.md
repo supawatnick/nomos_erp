@@ -1,92 +1,131 @@
 # NOMOS ERP
 
-NOMOS ERP is an inventory-first, multi-tenant ERP for small and growing businesses.
+**A modern, audit-first ERP platform for connected business operations.**
 
-> Product idea: **ERP you can operate without opening the ERP.**
+NOMOS ERP brings inventory, procurement, sales, CRM, finance, approvals, reporting, and master data into one coherent workspace. The project is designed around a simple principle: business rules belong to the domain, not to the screen that happens to call them.
 
-The same business services power the responsive Web application, API and LINE Messaging API experience. Channel-specific code may format input/output, but it must not own business rules.
+The result is an API-first ERP architecture where Web, integrations, messaging channels, automation, and future AI experiences can share the same governed application services.
 
-## Product goals
+## What NOMOS covers
 
-- Fast inventory operations with a clear audit trail
-- Multi-company SaaS architecture with strong tenant isolation
-- Multi-warehouse and location/bin inventory
-- Safe operational commands through LINE
-- Configurable RBAC, confirmations and approvals
-- Thai/English ready UX
-- API-first design so mobile, integrations and AI can be added safely
-- Deploy locally with Docker Compose and scale to Kubernetes later
+| Area | Highlights |
+| --- | --- |
+| Inventory | Stock balances, movements, receive, issue, transfer, adjustment, counts, reorder and reversals |
+| Procurement | Purchase requests, RFQs, supplier comparison, purchase orders, receipts and returns |
+| Sales | Quotations, revisions, sales orders, reservations, delivery and returns |
+| CRM | Partners, contacts, addresses, leads, opportunities and activities |
+| Finance | Chart of accounts, fiscal periods, journals, AR/AP invoices, payments and allocations |
+| Master Data | Products, categories, units, warehouses, locations and organization structure |
+| Approvals | Policy-driven approval requests, decisions and controlled execution |
+| Reporting | Operational reports and export workflows |
+| Administration | Tenant users, roles, permissions and immutable audit evidence |
+| Imports | Staged validation and controlled commit of business data |
 
-## MVP scope
+## Design philosophy
 
-1. Authentication, tenant membership and RBAC
-2. Product/SKU, category and unit masters
-3. Warehouses and locations
-4. Receive, issue, transfer and adjustment
-5. Ledger-based inventory balances and movement history
-6. Low-stock rules and dashboard
-7. LINE account linking and inventory queries
-8. LINE mutation requests with confirmation and approval when required
-9. Audit log and operational observability
-10. Backup/restore and production deployment baseline
+NOMOS favors explicit business lifecycles over generic CRUD.
 
-Purchasing and sales are documented as the next business modules. Full accounting/GL, payroll and manufacturing are not MVP requirements.
+Master data can be created, maintained and archived. Posted transactions are not silently rewritten or deleted: they move through domain-specific actions such as submit, approve, cancel, reverse, receive, deliver, return or allocate. This keeps operational history understandable and makes auditability a first-class property of the system.
 
-## Target stack
+Other core principles include:
 
-- Web: Next.js + TypeScript
-- API: Python + FastAPI
-- Database: PostgreSQL
-- Cache/queue: Redis when asynchronous work is required
-- Local runtime: Docker Compose
-- Production target: containers; Kubernetes when scale requires it
-- LINE: LINE Messaging API webhook
-- API contract: OpenAPI generated from FastAPI
+- **Tenant isolation by design** — business data is scoped to its owning tenant.
+- **Ledger-based inventory** — stock truth is derived from posted movements rather than a casually mutable quantity field.
+- **Audit-first operations** — meaningful mutations carry actor, request and business context.
+- **Idempotent posting** — retriable commands are designed to avoid accidental duplicate effects.
+- **Server-authoritative permissions** — the API remains the security boundary regardless of client.
+- **Exact business arithmetic** — quantities and monetary values use decimal semantics.
+- **Shared application services** — channels reuse domain logic instead of reimplementing it.
 
-## Repository layout
+## Architecture
 
-~~~
+```text
+┌──────────────────────────────────────────────────────────┐
+│                     Experience Layer                     │
+│        Web · Integrations · Messaging · Automation       │
+└───────────────────────────┬──────────────────────────────┘
+                            │
+                    FastAPI / OpenAPI
+                            │
+┌───────────────────────────▼──────────────────────────────┐
+│                    Application Layer                     │
+│  Inventory · Procurement · Sales · CRM · Finance · RBAC │
+│               Approvals · Reporting · Audit              │
+└───────────────────────────┬──────────────────────────────┘
+                            │
+┌───────────────────────────▼──────────────────────────────┐
+│                      Data Layer                          │
+│                  PostgreSQL · Redis                      │
+└──────────────────────────────────────────────────────────┘
+```
+
+The browser application is built with **Next.js and TypeScript**. Business APIs are implemented with **FastAPI and Python**, backed by **PostgreSQL**. Schema evolution is managed with **Alembic**, while container-based development is supported through **Docker Compose**.
+
+## Repository structure
+
+```text
 apps/
-  api/              # FastAPI application
-  web/              # Next.js application
-docs/               # Product and engineering source of truth
-skills/             # Instructions for coding agents/contributors
-infra/              # Local/production infrastructure assets
-tests/              # Cross-service and end-to-end tests
+  api/          FastAPI application and domain services
+  web/          Next.js ERP workspace
+  worker/       Background worker entry points
+
+docs/           Product, architecture and domain documentation
+infra/          Infrastructure and deployment assets
+skills/         Contributor and coding-agent guidance
+tests/          Cross-service test assets
+
 AGENTS.md
 CONTRIBUTING.md
 docker-compose.yml
 .env.example
-~~~
+```
 
-## Documentation map
+## Business flows
 
-Start with:
-- docs/PRODUCT.md — product scope, personas and acceptance criteria
-- docs/ARCHITECTURE.md — system boundaries and data flow
-- docs/DATABASE.md — persistence model and invariants
-- docs/AUTH-RBAC.md — authentication and permissions
-- docs/INVENTORY.md — inventory domain rules
-- docs/API.md — API conventions and resources
-- docs/LINE-INTEGRATION.md — LINE identity and command safety
-- docs/APPROVALS.md — confirmation/approval workflow
-- docs/SECURITY.md — security baseline
-- docs/DEVELOPMENT.md — local development and Definition of Done
-- docs/DEPLOYMENT.md — environments, migration and backup strategy
-- docs/OBSERVABILITY.md — logs, metrics, traces and alerts
-- docs/ROADMAP.md — delivery phases
-- docs/PURCHASING.md and docs/SALES.md — post-MVP business modules
-- docs/AI-ASSISTANT.md — controlled future AI assistant
+### Procure to stock
+Purchase Request → RFQ → Supplier Response → Award → Purchase Order → Approval → Goods Receipt → Supplier Return
 
-## Core engineering rules
+### Quote to cash
+Lead / Opportunity → Quotation → Revision → Acceptance → Sales Order → Reservation → Delivery → Sales Return
 
-- Inventory is ledger-based; never treat a mutable stock field as the system of record.
-- Every tenant-owned record is tenant-scoped.
-- Web, LINE and future AI call the same application services.
-- Stock-changing operations are transactional, idempotent when retriable and audited.
-- Posted business transactions are corrected by reversal/correction flows, not silent edits.
-- Exact decimal types are used for quantities and money.
-- Cross-tenant access is denied and covered by automated tests.
-- Secrets never enter source control.
+### Inventory control
+Receive → Balance → Transfer / Issue / Adjustment → Movement History → Reversal
 
-Read AGENTS.md before implementation.
+### Financial control
+Fiscal Period → Journal / Invoice / Payment → Allocation → Reversal and audit evidence
+
+## Security & governance
+
+NOMOS treats authorization and traceability as domain concerns rather than UI features. Tenant membership, role-based permissions, approval policies, idempotency keys, audit records and transaction state checks are enforced server-side.
+
+Sensitive configuration is expected to be supplied through environment-specific secret management. Repository documentation intentionally avoids publishing environment addresses, credentials or private deployment identifiers.
+
+## Documentation
+
+The `docs/` directory contains the deeper design material behind the project:
+
+- `PRODUCT.md` — product scope and user journeys
+- `ARCHITECTURE.md` — boundaries, components and data flow
+- `DATABASE.md` — persistence model and invariants
+- `AUTH-RBAC.md` — authentication and authorization model
+- `INVENTORY.md` — stock and movement rules
+- `PURCHASING.md` — procurement domain
+- `SALES.md` — sales lifecycle
+- `APPROVALS.md` — controlled decision workflows
+- `API.md` — API conventions
+- `SECURITY.md` — security baseline
+- `OBSERVABILITY.md` — operational telemetry
+- `DEVELOPMENT.md` — development workflow
+- `DEPLOYMENT.md` — deployment concepts
+
+## Technology
+
+**Frontend:** Next.js · React · TypeScript  
+**Backend:** Python · FastAPI · SQLAlchemy · Alembic  
+**Data:** PostgreSQL · Redis  
+**Quality:** Ruff · mypy · pytest · Node test runner · runtime acceptance checks  
+**Infrastructure:** Docker Compose · reverse proxy · container-ready services
+
+---
+
+NOMOS ERP is an exploration of how a modern ERP can remain operationally practical while keeping domain boundaries, auditability and data integrity explicit in the architecture.
