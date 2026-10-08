@@ -6,8 +6,8 @@ from sqlalchemy import create_engine, text
 
 from app.core.config import get_settings
 
-TENANT_ID = UUID("11111111-1111-4111-8111-111111111111")
-EMAIL = "admin@demo.nomos.local"
+TENANT_ID = UUID("00000000-0000-4000-8000-000000000001")
+EMAIL = "admin@example.invalid"
 
 def main() -> None:
     engine=create_engine(get_settings().database_url,pool_pre_ping=True); now=datetime.now(UTC)
